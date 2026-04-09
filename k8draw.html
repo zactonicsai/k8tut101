@@ -464,7 +464,7 @@ function findComponentMeta(type) {
 }
 
 function addNode(type, x, y, preset, overrides = {}) {
-  const id = 'n' + (state.nextId++);
+  const id = overrides.forceId || ('n' + (state.nextId++));
   const meta = findComponentMeta(type);
   const defaultLabel = overrides.label || (type.toLowerCase() + '-' + (state.nextId - 1));
 
@@ -523,7 +523,7 @@ function addNode(type, x, y, preset, overrides = {}) {
 
   updateCounts();
   updateEmptyState();
-  selectNode(id);
+  if (!overrides.skipSelect) selectNode(id);
   schedulePreview();
   return node;
 }
@@ -2704,36 +2704,46 @@ function updateHistoryButtons() {
 
 function restoreSnapshot(snap) {
   history.muted = true;
-  // Clear current
-  Object.values(state.nodes).forEach(n => n.el.remove());
+
+  // Hard reset — remove all node DOM (defensive, in case of stray elements)
+  Array.from(world.querySelectorAll('.node')).forEach(el => el.remove());
   state.nodes = {};
   state.connections = [];
   state.selected = null;
-  // Rebuild nodes preserving IDs
-  snap.nodes.forEach(nd => {
-    const n = addNode(nd.type, nd.x, nd.y, nd.preset, {
+
+  // Clear any in-progress interactions
+  state.pendingPort = null;
+
+  // Rebuild nodes with their original IDs — no rekeying dance
+  (snap.nodes || []).forEach(nd => {
+    addNode(nd.type, nd.x, nd.y, nd.preset, {
       label: nd.label,
       props: { ...nd.props },
+      forceId: nd.id,
+      skipSelect: true,
     });
-    // Re-key if needed
-    if (n.id !== nd.id) {
-      delete state.nodes[n.id];
-      n.el.dataset.id = nd.id;
-      n.id = nd.id;
-      state.nodes[nd.id] = n;
-    }
   });
-  state.nextId = snap.nextId;
+
+  // Restore the ID counter to the saved high-water mark
+  state.nextId = Math.max(snap.nextId || 1, state.nextId || 1);
+
   // Rebuild connections
-  snap.connections.forEach(c => {
+  (snap.connections || []).forEach(c => {
     state.connections.push({ id: 'c' + (state.nextId++), from: c.from, to: c.to });
   });
+
+  // Full UI sync
   redrawConnections();
   updateCounts();
   updateEmptyState();
   renderInspector();
+
   history.muted = false;
-  schedulePreview();
+
+  // Force immediate preview refresh (skip debounce)
+  if (previewTimer) { clearTimeout(previewTimer); previewTimer = null; }
+  updatePreview();
+  updateHistoryButtons();
 }
 
 function undo() {
@@ -2791,26 +2801,214 @@ updateProp = function(...args) {
 
 // -------------------------- PROJECTS (save/load) --------------------------
 const PROJECT_KEY_PREFIX = 'k8s-studio-project:';
+const SCHEMA_VERSION = 1;
 
-function serializeProject() {
+// JSON Schema describing the project file format
+const PROJECT_JSON_SCHEMA = {
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://k8s-studio.local/schemas/project.schema.json",
+  "title": "K8s Studio Project",
+  "description": "A saved K8s Studio diagram — nodes, connections, and cluster settings.",
+  "type": "object",
+  "required": ["version", "state"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "description": "Schema version number. Current: 1",
+      "const": 1
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the project was saved"
+    },
+    "clusterName": {
+      "type": "string",
+      "description": "Target kind cluster name",
+      "default": "demo"
+    },
+    "namespace": {
+      "type": "string",
+      "description": "Default Kubernetes namespace for resources",
+      "default": "default"
+    },
+    "workerCount": {
+      "type": ["integer", "string"],
+      "description": "Number of worker nodes in the kind cluster",
+      "minimum": 0
+    },
+    "state": {
+      "type": "object",
+      "required": ["nodes", "connections"],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "description": "All diagram nodes",
+          "items": {
+            "type": "object",
+            "required": ["id", "type", "x", "y", "label", "props"],
+            "properties": {
+              "id": { "type": "string", "description": "Unique node identifier (e.g. 'n1')" },
+              "type": {
+                "type": "string",
+                "description": "K8s Studio node type",
+                "enum": [
+                  "Pod", "Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob",
+                  "Service", "Ingress", "Egress", "NetworkPolicy",
+                  "ConfigMap", "Secret", "PersistentVolumeClaim",
+                  "WebFrontend", "APIServer", "AppServer", "Database", "DocStore", "Cache", "MessageQueue",
+                  "Custom"
+                ]
+              },
+              "x": { "type": "number", "description": "Canvas x coordinate" },
+              "y": { "type": "number", "description": "Canvas y coordinate" },
+              "label": { "type": "string", "description": "Display label (usually same as props.name)" },
+              "preset": {
+                "type": ["string", "null"],
+                "description": "App component preset key (web/api/app/db/doc/cache/mq)"
+              },
+              "props": {
+                "type": "object",
+                "description": "Node properties — maps to Kubernetes resource spec",
+                "properties": {
+                  "name": { "type": "string" },
+                  "namespace": { "type": "string" },
+                  "description": { "type": "string", "description": "Human description → annotation" },
+                  "image": { "type": "string", "description": "Container image" },
+                  "port": { "type": ["integer", "null"] },
+                  "replicas": { "type": "integer", "minimum": 0 },
+                  "env": {
+                    "type": "object",
+                    "description": "Environment variables (KEY → value)",
+                    "additionalProperties": { "type": "string" }
+                  },
+                  "data": {
+                    "type": "object",
+                    "description": "ConfigMap/Secret data entries",
+                    "additionalProperties": { "type": "string" }
+                  },
+                  "serviceType": {
+                    "type": "string",
+                    "enum": ["ClusterIP", "NodePort", "LoadBalancer"]
+                  },
+                  "host": { "type": "string", "description": "Ingress host" },
+                  "path": { "type": "string", "description": "Ingress path" },
+                  "customKind": {
+                    "type": "string",
+                    "description": "K8s kind for Custom components (Deployment, StatefulSet, etc.)"
+                  },
+                  "color": { "type": "string", "description": "Tailwind bg-* class for custom header color" },
+                  "size": { "type": "string", "description": "PVC storage size (e.g. '10Gi')" }
+                }
+              }
+            }
+          }
+        },
+        "connections": {
+          "type": "array",
+          "description": "Edges between nodes (resource relationships)",
+          "items": {
+            "type": "object",
+            "required": ["from", "to"],
+            "properties": {
+              "from": { "type": "string", "description": "Source node id" },
+              "to": { "type": "string", "description": "Target node id" }
+            }
+          }
+        },
+        "nextId": {
+          "type": "integer",
+          "description": "Internal ID counter for deterministic rebuild",
+          "minimum": 1
+        }
+      }
+    }
+  }
+};
+
+function serializeProject(name) {
   return {
-    version: 1,
+    version: SCHEMA_VERSION,
+    name: name || (document.getElementById('clusterName').value || 'untitled'),
     createdAt: new Date().toISOString(),
     clusterName: document.getElementById('clusterName').value,
     namespace: document.getElementById('namespace').value,
-    workerCount: document.getElementById('workerCount').value,
+    workerCount: parseInt(document.getElementById('workerCount').value) || 0,
     state: snapshotState(),
   };
 }
 
+// Minimal runtime validation against the schema (no external lib)
+function validateProject(proj) {
+  const errors = [];
+  if (!proj || typeof proj !== 'object') {
+    errors.push('Project must be a JSON object');
+    return errors;
+  }
+  if (proj.version !== SCHEMA_VERSION) {
+    errors.push(`Unsupported schema version ${proj.version} (expected ${SCHEMA_VERSION})`);
+  }
+  if (!proj.state || typeof proj.state !== 'object') {
+    errors.push('Missing "state" object');
+    return errors;
+  }
+  if (!Array.isArray(proj.state.nodes)) {
+    errors.push('state.nodes must be an array');
+  } else {
+    const allowedTypes = PROJECT_JSON_SCHEMA.properties.state.properties.nodes.items.properties.type.enum;
+    proj.state.nodes.forEach((n, i) => {
+      if (!n.id) errors.push(`node[${i}]: missing id`);
+      if (!n.type) errors.push(`node[${i}]: missing type`);
+      else if (!allowedTypes.includes(n.type)) errors.push(`node[${i}]: unknown type "${n.type}"`);
+      if (typeof n.x !== 'number') errors.push(`node[${i}]: x must be a number`);
+      if (typeof n.y !== 'number') errors.push(`node[${i}]: y must be a number`);
+      if (!n.props || typeof n.props !== 'object') errors.push(`node[${i}]: missing props`);
+    });
+  }
+  if (!Array.isArray(proj.state.connections)) {
+    errors.push('state.connections must be an array');
+  } else {
+    const ids = new Set((proj.state.nodes || []).map(n => n.id));
+    proj.state.connections.forEach((c, i) => {
+      if (!c.from || !c.to) errors.push(`connection[${i}]: missing from/to`);
+      else if (!ids.has(c.from)) errors.push(`connection[${i}]: unknown source "${c.from}"`);
+      else if (!ids.has(c.to)) errors.push(`connection[${i}]: unknown target "${c.to}"`);
+    });
+  }
+  return errors;
+}
+
 function deserializeProject(proj) {
-  if (!proj || !proj.state) { toast('Invalid project file', 'error'); return; }
+  if (!proj || !proj.state) { toast('Invalid project file', 'error'); return false; }
+  const errs = validateProject(proj);
+  if (errs.length) {
+    showModal('⚠ Schema Validation Failed', `
+      <p class="text-sm themed-muted mb-3">The project file does not conform to the K8s Studio schema:</p>
+      <ul class="text-xs list-disc pl-5 space-y-1 text-red-600">
+        ${errs.slice(0, 15).map(e => `<li>${escapeHtml(e)}</li>`).join('')}
+        ${errs.length > 15 ? `<li>...and ${errs.length - 15} more</li>` : ''}
+      </ul>
+      <p class="text-xs themed-dim mt-3">Download the <button class="text-blue-500 underline" onclick="downloadSchema()">JSON Schema</button> for reference.</p>
+    `);
+    return false;
+  }
   document.getElementById('clusterName').value = proj.clusterName || 'demo';
   document.getElementById('namespace').value = proj.namespace || 'default';
   document.getElementById('workerCount').value = proj.workerCount || 2;
   document.getElementById('nsLabel').textContent = proj.namespace || 'default';
   restoreSnapshot(proj.state);
   pushHistory();
+  return true;
+}
+
+function downloadSchema() {
+  const blob = new Blob([JSON.stringify(PROJECT_JSON_SCHEMA, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'k8s-studio-project.schema.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Schema downloaded', 'success');
 }
 
 function listStoredProjects() {
@@ -2840,39 +3038,94 @@ function openProjectsModal() {
     </div>
   `).join('') : '<p class="text-xs themed-dim italic">No saved projects yet.</p>';
 
-  showModal('💾 Projects', `
-    <div class="mb-5">
-      <div class="text-xs font-bold uppercase themed-muted mb-2">Save current diagram</div>
+  const currentName = document.getElementById('clusterName').value || 'my-project';
+
+  showModal('💾 Save &amp; Load Projects', `
+    <!-- Save to File (prominent) -->
+    <div class="p-4 rounded-lg border-2 border-dashed border-emerald-400 bg-emerald-50 mb-4" style="background:rgba(16,185,129,0.08)">
+      <div class="text-sm font-bold text-emerald-700 mb-2">💾 Save to File</div>
+      <p class="text-xs themed-muted mb-3">Download your diagram as a portable JSON file. Re-open it later via the Upload button below.</p>
       <div class="flex gap-2">
-        <input id="projectNameInput" placeholder="my-project" class="flex-1 text-sm themed-input rounded px-2 py-1.5" />
-        <button onclick="saveCurrentProject()" class="px-3 py-1.5 bg-emerald-600 text-white rounded hover:bg-emerald-500 text-sm font-semibold">💾 Save</button>
+        <input id="fileSaveName" value="${escapeHtml(currentName)}" placeholder="filename" class="flex-1 text-sm themed-input rounded px-2 py-1.5" />
+        <button onclick="saveToFile()" class="px-4 py-1.5 bg-emerald-600 text-white rounded hover:bg-emerald-500 text-sm font-semibold whitespace-nowrap">⬇ Save File</button>
       </div>
     </div>
 
+    <!-- Load from File -->
     <div class="mb-5">
-      <div class="text-xs font-bold uppercase themed-muted mb-2">Import / Export JSON</div>
-      <div class="flex gap-2 flex-wrap">
-        <button onclick="downloadProjectJson()" class="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-500 text-xs">⬇ Download .json</button>
-        <input type="file" id="projectFileIn" accept=".json" class="text-xs" onchange="uploadProjectJson(this)" />
+      <div class="text-xs font-bold uppercase themed-muted mb-2">📂 Load from file</div>
+      <input type="file" id="projectFileIn" accept=".json" class="text-xs block w-full" onchange="uploadProjectJson(this)" />
+    </div>
+
+    <!-- Save to browser -->
+    <div class="mb-5">
+      <div class="text-xs font-bold uppercase themed-muted mb-2">🗃 Save to browser (localStorage)</div>
+      <div class="flex gap-2">
+        <input id="projectNameInput" placeholder="${escapeHtml(currentName)}" class="flex-1 text-sm themed-input rounded px-2 py-1.5" />
+        <button onclick="saveCurrentProject()" class="px-3 py-1.5 bg-pink-600 text-white rounded hover:bg-pink-500 text-sm font-semibold">Save</button>
       </div>
     </div>
 
-    <div>
-      <div class="text-xs font-bold uppercase themed-muted mb-2">Stored projects (in browser)</div>
+    <!-- Stored projects list -->
+    <div class="mb-4">
+      <div class="text-xs font-bold uppercase themed-muted mb-2">Stored in this browser</div>
       ${projectsHtml}
     </div>
-    <p class="text-[10px] themed-dim mt-3">⌨ Tip: Ctrl/Cmd+S opens this dialog. Ctrl+Z undo, Ctrl+Shift+Z redo.</p>
+
+    <!-- Schema -->
+    <div class="p-3 rounded border themed-border" style="background:rgba(59,130,246,0.05)">
+      <div class="text-xs font-bold themed-text mb-1">📋 Project Schema</div>
+      <p class="text-[11px] themed-muted mb-2">The project file format is defined by a JSON Schema (draft-07). Use it to validate files externally, generate TypeScript types, or document integrations.</p>
+      <div class="flex gap-2">
+        <button onclick="downloadSchema()" class="text-xs px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-500">⬇ Download schema</button>
+        <button onclick="viewSchema()" class="text-xs px-3 py-1.5 themed-input themed-hover rounded">👁 View schema</button>
+      </div>
+    </div>
+
+    <p class="text-[10px] themed-dim mt-3">⌨ Ctrl/Cmd+S opens this dialog. Files are validated against the schema on import.</p>
   `);
 }
 
+function saveToFile() {
+  const name = (document.getElementById('fileSaveName').value || 'project').replace(/[^a-z0-9._-]/gi, '-');
+  const proj = serializeProject(name);
+  const blob = new Blob([JSON.stringify(proj, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name + '.k8s-studio.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast(`Saved ${a.download}`, 'success');
+}
+
+function viewSchema() {
+  const schemaStr = JSON.stringify(PROJECT_JSON_SCHEMA, null, 2);
+  showModal('📋 Project JSON Schema', `
+    <p class="text-xs themed-muted mb-2">Draft-07 JSON Schema for K8s Studio project files. Used to validate imports.</p>
+    <div class="flex gap-2 mb-3">
+      <button onclick="downloadSchema()" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">⬇ Download</button>
+      <button onclick="copySchema()" class="px-3 py-1.5 text-xs bg-slate-600 text-white rounded hover:bg-slate-500">📋 Copy</button>
+      <button onclick="openProjectsModal()" class="px-3 py-1.5 text-xs themed-input themed-hover rounded">← Back</button>
+    </div>
+    <textarea id="schemaView" readonly class="w-full h-96 text-xs font-mono border rounded p-3 scrollbar scrollbar-dark" style="background:#0f172a;color:#86efac;border-color:#334155;">${escapeHtml(schemaStr)}</textarea>
+  `, true);
+}
+
+function copySchema() {
+  const t = document.getElementById('schemaView');
+  t.select(); document.execCommand('copy');
+  toast('Schema copied', 'success');
+}
+
 function saveCurrentProject() {
-  const name = document.getElementById('projectNameInput').value.trim();
-  if (!name) { toast('Enter a project name', 'error'); return; }
+  const name = document.getElementById('projectNameInput').value.trim() ||
+               document.getElementById('projectNameInput').placeholder ||
+               'untitled';
   const key = PROJECT_KEY_PREFIX + name;
   try {
-    localStorage.setItem(key, JSON.stringify(serializeProject()));
-    toast(`Project "${name}" saved`, 'success');
-    openProjectsModal(); // refresh
+    localStorage.setItem(key, JSON.stringify(serializeProject(name)));
+    toast(`Project "${name}" saved to browser`, 'success');
+    openProjectsModal();
   } catch (e) {
     toast('Save failed: ' + e.message, 'error');
   }
@@ -2881,9 +3134,10 @@ function saveCurrentProject() {
 function loadStoredProject(name) {
   try {
     const data = JSON.parse(localStorage.getItem(PROJECT_KEY_PREFIX + name));
-    deserializeProject(data);
-    closeModal();
-    toast(`Loaded "${name}"`, 'success');
+    if (deserializeProject(data)) {
+      closeModal();
+      toast(`Loaded "${name}"`, 'success');
+    }
   } catch (e) {
     toast('Load failed: ' + e.message, 'error');
   }
@@ -2896,26 +3150,16 @@ function deleteStoredProject(name) {
   toast(`Deleted "${name}"`, 'info');
 }
 
-function downloadProjectJson() {
-  const proj = serializeProject();
-  const blob = new Blob([JSON.stringify(proj, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = (proj.clusterName || 'project') + '.k8s-studio.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
-  toast('Project downloaded', 'success');
-}
-
 function uploadProjectJson(input) {
   const f = input.files[0]; if (!f) return;
   const r = new FileReader();
   r.onload = e => {
     try {
       const proj = JSON.parse(e.target.result);
-      deserializeProject(proj);
-      closeModal();
-      toast('Project imported', 'success');
+      if (deserializeProject(proj)) {
+        closeModal();
+        toast(`Imported ${f.name}`, 'success');
+      }
     } catch (err) {
       toast('Import failed: ' + err.message, 'error');
     }
@@ -3044,9 +3288,9 @@ function runValidation() {
     <div class="mb-4">
       <div class="text-xs font-bold uppercase mb-2" style="color:${color}">${icon} ${label} (${items.length})</div>
       ${items.map(i => `
-        <div class="text-xs p-2 mb-1 rounded border-l-4" style="border-color:${color}; background:rgba(0,0,0,0.03)">
-          ${i.msg}
-          ${i.nodes.length ? `<button class="ml-2 text-[10px] px-1.5 py-0.5 bg-blue-500 text-white rounded" onclick="highlightNodes(${JSON.stringify(i.nodes.map(n=>n.id))})">Show on canvas</button>` : ''}
+        <div class="text-xs p-2 mb-1 rounded border-l-4 flex items-start justify-between gap-2" style="border-color:${color}; background:rgba(0,0,0,0.03)">
+          <span class="flex-1 themed-text">${i.msg}</span>
+          ${i.nodes.length ? `<button class="shrink-0 text-[10px] px-2 py-0.5 bg-blue-500 text-white rounded hover:bg-blue-400" onclick="highlightNodes('${i.nodes.map(n=>n.id).join(',')}')">Show on canvas</button>` : ''}
         </div>
       `).join('')}
     </div>
@@ -3069,7 +3313,8 @@ function runValidation() {
   `, true);
 }
 
-function highlightNodes(ids) {
+function highlightNodes(idsStr) {
+  const ids = typeof idsStr === 'string' ? idsStr.split(',').filter(Boolean) : idsStr;
   Object.values(state.nodes).forEach(n => n.el.style.outline = '');
   ids.forEach(id => {
     const n = state.nodes[id];
