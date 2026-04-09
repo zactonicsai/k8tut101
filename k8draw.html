@@ -106,6 +106,138 @@
     color: var(--text);
   }
 
+  /* Stacked replica effect — layered cards behind the main node */
+  .node.has-replicas::before,
+  .node.has-replicas::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--node-body);
+    border: 1px solid var(--node-border);
+    border-radius: 8px;
+    z-index: -1;
+    pointer-events: none;
+    transition: transform .3s, opacity .3s;
+  }
+  .node.has-replicas::before {
+    transform: translate(4px, 4px);
+    opacity: 0.6;
+  }
+  .node.has-replicas::after {
+    transform: translate(8px, 8px);
+    opacity: 0.35;
+  }
+  .node.has-replicas.expanded::before,
+  .node.has-replicas.expanded::after { opacity: 0; }
+
+  /* Replica count badge */
+  .replica-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    min-width: 22px;
+    height: 22px;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 0 6px;
+    border: 2px solid var(--bg-canvas);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    z-index: 3;
+    pointer-events: none;
+    line-height: 1;
+  }
+  .replica-badge.leader-badge {
+    background: linear-gradient(135deg, #10b981, #14b8a6);
+  }
+
+  /* Expand/collapse button on the node */
+  .expand-btn {
+    position: absolute;
+    bottom: -8px;
+    right: -8px;
+    width: 22px;
+    height: 22px;
+    background: var(--bg-panel);
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+    transition: transform .2s;
+  }
+  .expand-btn:hover { transform: scale(1.15); }
+
+  /* Individual replica pods (rendered when expanded) */
+  .replica-pod {
+    position: absolute;
+    width: 96px;
+    height: 42px;
+    background: var(--node-body);
+    border: 1.5px solid var(--node-border);
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 9px;
+    color: var(--text);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+    cursor: pointer;
+    transition: transform .2s, box-shadow .2s;
+    animation: popIn .3s ease-out;
+    z-index: 5;
+  }
+  .replica-pod:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59,130,246,0.5);
+  }
+  .replica-pod.leader {
+    border-color: #10b981;
+    border-width: 2px;
+  }
+  .replica-pod .pod-label { font-weight: 700; font-family: Menlo, monospace; font-size: 10px; }
+  .replica-pod .pod-status {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: #10b981;
+    margin-right: 3px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .replica-pod .leader-tag {
+    font-size: 8px;
+    color: #10b981;
+    font-weight: 700;
+    float: right;
+  }
+
+  /* Failover links in the connection SVG */
+  #connections path.failover {
+    stroke: #ef4444;
+    stroke-width: 1.5;
+    stroke-dasharray: 3 3;
+    opacity: 0.75;
+  }
+  #connections path.ownership {
+    stroke: #10b981;
+    stroke-width: 1.5;
+    stroke-dasharray: 2 4;
+    opacity: 0.6;
+  }
+
   .palette-item {
     cursor: grab;
     transition: transform .1s, background-color .1s;
@@ -252,10 +384,12 @@
     </div>
 
     <!-- Canvas status bar -->
-    <div class="absolute bottom-3 left-3 bg-slate-900/90 text-slate-300 text-xs px-3 py-1.5 rounded-md border border-slate-700 flex gap-4">
+    <div class="absolute bottom-3 left-3 bg-slate-900/90 text-slate-300 text-xs px-3 py-1.5 rounded-md border border-slate-700 flex gap-4 items-center">
       <span>Nodes: <span id="nodeCount" class="text-white font-semibold">0</span></span>
       <span>Connections: <span id="connCount" class="text-white font-semibold">0</span></span>
       <span>Namespace: <span id="nsLabel" class="text-emerald-400 font-semibold">default</span></span>
+      <span class="flex items-center gap-1"><span style="display:inline-block;width:16px;height:2px;background:#10b981;border-top:1px dashed #10b981"></span>owns</span>
+      <span class="flex items-center gap-1"><span style="display:inline-block;width:16px;height:2px;background:#ef4444;border-top:1px dashed #ef4444"></span>failover</span>
     </div>
   </main>
 
@@ -515,6 +649,12 @@ function addNode(type, x, y, preset, overrides = {}) {
   el.style.width = '160px';
   el.dataset.id = id;
   const headerColor = props.color || meta.color;
+  const replicaCount = props.replicas || 1;
+  const workloadType = ['Deployment','StatefulSet','DaemonSet','WebFrontend','APIServer','AppServer','Database','DocStore','Cache','MessageQueue','TemporalServer','TemporalWorker','TemporalClient','TemporalUI','TemporalDB','Custom'].includes(type);
+  const hasReplicas = workloadType && replicaCount > 1;
+  if (hasReplicas) el.classList.add('has-replicas');
+  const isStateful = ['StatefulSet','Database','DocStore','MessageQueue','TemporalDB'].includes(type) || (type === 'Custom' && props.customKind === 'StatefulSet');
+
   el.innerHTML = `
     <div class="${headerColor} text-white rounded-t-lg px-2 py-1.5 flex items-center gap-1.5 text-xs font-semibold">
       <span class="text-base leading-none">${meta.icon}</span>
@@ -524,6 +664,8 @@ function addNode(type, x, y, preset, overrides = {}) {
       <div class="text-[11px] font-mono truncate node-label">${node.label}</div>
       <div class="text-[10px] themed-dim truncate node-sub">${props.image || props.description || meta.desc}</div>
     </div>
+    ${hasReplicas ? `<div class="replica-badge ${isStateful ? 'leader-badge' : ''}" title="${replicaCount} replicas">×${replicaCount}</div>` : ''}
+    ${hasReplicas ? `<button class="expand-btn" title="Expand replicas (or double-click node)">⤢</button>` : ''}
     <div class="port top"    data-port="top"></div>
     <div class="port bottom" data-port="bottom"></div>
     <div class="port left"   data-port="left"></div>
@@ -531,12 +673,25 @@ function addNode(type, x, y, preset, overrides = {}) {
   `;
   world.appendChild(el);
   node.el = el;
+  node.expanded = overrides.expanded || false;
 
   makeDraggable(el, node);
   el.addEventListener('click', ev => { ev.stopPropagation(); selectNode(id); });
+  el.addEventListener('dblclick', ev => {
+    if (ev.target.classList.contains('port')) return;
+    ev.stopPropagation();
+    if (hasReplicas) toggleNodeExpand(id);
+  });
+  const expBtn = el.querySelector('.expand-btn');
+  if (expBtn) expBtn.addEventListener('click', ev => { ev.stopPropagation(); toggleNodeExpand(id); });
   el.querySelectorAll('.port').forEach(p => {
     p.addEventListener('click', ev => { ev.stopPropagation(); handlePortClick(id, p.dataset.port); });
   });
+
+  // If restoring an expanded node, render replica pods now
+  if (node.expanded && hasReplicas) {
+    setTimeout(() => renderReplicaPods(node), 0);
+  }
 
   updateCounts();
   updateEmptyState();
@@ -550,6 +705,7 @@ function makeDraggable(el, node) {
   let startX, startY, origX, origY, dragging = false;
   el.addEventListener('mousedown', ev => {
     if (ev.target.classList.contains('port')) return;
+    if (ev.target.classList.contains('expand-btn')) return;
     dragging = true;
     startX = ev.clientX; startY = ev.clientY;
     origX = node.x; origY = node.y;
@@ -561,9 +717,216 @@ function makeDraggable(el, node) {
     node.y = origY + (ev.clientY - startY);
     el.style.left = node.x + 'px';
     el.style.top  = node.y + 'px';
+    // Move any rendered replica pods along with the main node
+    if (node.expanded) repositionReplicaPods(node);
     redrawConnections();
   });
   document.addEventListener('mouseup', () => { if (dragging) { dragging = false; schedulePreview(); } });
+}
+
+// -------------------------- REPLICA EXPANSION --------------------------
+function toggleNodeExpand(id) {
+  const n = state.nodes[id];
+  if (!n) return;
+  const replicas = n.props.replicas || 1;
+  if (replicas <= 1) return;
+
+  n.expanded = !n.expanded;
+  n.el.classList.toggle('expanded', n.expanded);
+  const btn = n.el.querySelector('.expand-btn');
+  if (btn) btn.textContent = n.expanded ? '⤡' : '⤢';
+
+  if (n.expanded) {
+    renderReplicaPods(n);
+  } else {
+    removeReplicaPods(n);
+  }
+  redrawConnections();
+}
+
+function replicaPodPositions(node) {
+  const replicas = node.props.replicas || 1;
+  const max = Math.min(replicas, 8); // cap visible
+  const W_POD = 96;
+  const H_POD = 42;
+  const GAP = 14;
+  const NODE_W = 160;
+  const NODE_H = 56;
+
+  // Lay out in a horizontal row below the main node, wrap if more than 5
+  const perRow = Math.min(max, 5);
+  const rows = Math.ceil(max / perRow);
+  const positions = [];
+  for (let i = 0; i < max; i++) {
+    const row = Math.floor(i / perRow);
+    const col = i % perRow;
+    const rowCount = (row === rows - 1) ? (max - row * perRow) : perRow;
+    const totalRowWidth = rowCount * W_POD + (rowCount - 1) * GAP;
+    const startX = node.x + NODE_W / 2 - totalRowWidth / 2;
+    positions.push({
+      x: startX + col * (W_POD + GAP),
+      y: node.y + NODE_H + 36 + row * (H_POD + GAP),
+    });
+  }
+  return positions;
+}
+
+function renderReplicaPods(node) {
+  removeReplicaPods(node);
+  node.replicaPods = [];
+  const replicas = node.props.replicas || 1;
+  const max = Math.min(replicas, 8);
+  const extra = replicas - max;
+  const positions = replicaPodPositions(node);
+  const isStateful = ['StatefulSet','Database','DocStore','MessageQueue','TemporalDB'].includes(node.type)
+    || (node.type === 'Custom' && node.props.customKind === 'StatefulSet');
+
+  for (let i = 0; i < max; i++) {
+    const pod = document.createElement('div');
+    pod.className = 'replica-pod';
+    if (isStateful && i === 0) pod.classList.add('leader');
+    pod.style.left = positions[i].x + 'px';
+    pod.style.top  = positions[i].y + 'px';
+    const podName = isStateful
+      ? `${node.props.name}-${i}`
+      : `${node.props.name}-${Math.random().toString(36).slice(2, 7)}`;
+    pod.innerHTML = `
+      <div class="pod-label"><span class="pod-status"></span>${escapeHtml(podName)}${isStateful && i === 0 ? '<span class="leader-tag">LEADER</span>' : ''}</div>
+      <div class="text-[9px] themed-dim truncate">${escapeHtml(node.props.image || node.type)}</div>
+      ${node.props.port ? `<div class="text-[9px] themed-dim">:${node.props.port}</div>` : ''}
+    `;
+    pod.addEventListener('click', ev => {
+      ev.stopPropagation();
+      openPodDetails(node, i, podName, isStateful);
+    });
+    world.appendChild(pod);
+    node.replicaPods.push(pod);
+  }
+
+  // "+N more" indicator if we capped
+  if (extra > 0) {
+    const last = positions[positions.length - 1];
+    const more = document.createElement('div');
+    more.className = 'replica-pod';
+    more.style.left = (last.x + 110) + 'px';
+    more.style.top  = last.y + 'px';
+    more.style.display = 'flex';
+    more.style.alignItems = 'center';
+    more.style.justifyContent = 'center';
+    more.style.fontSize = '11px';
+    more.style.fontWeight = '700';
+    more.innerHTML = `+${extra} more`;
+    world.appendChild(more);
+    node.replicaPods.push(more);
+  }
+}
+
+function repositionReplicaPods(node) {
+  if (!node.replicaPods || !node.replicaPods.length) return;
+  const positions = replicaPodPositions(node);
+  node.replicaPods.forEach((pod, i) => {
+    if (i < positions.length) {
+      pod.style.left = positions[i].x + 'px';
+      pod.style.top  = positions[i].y + 'px';
+    } else {
+      // the "+N more" chip sits after the last positioned pod
+      const last = positions[positions.length - 1];
+      pod.style.left = (last.x + 110) + 'px';
+      pod.style.top  = last.y + 'px';
+    }
+  });
+}
+
+function removeReplicaPods(node) {
+  if (node.replicaPods) {
+    node.replicaPods.forEach(p => p.remove());
+    node.replicaPods = [];
+  }
+}
+
+function openPodDetails(parentNode, index, podName, isStateful) {
+  const info = K8S_INFO[parentNode.type];
+  const failoverText = info ? info.failover : 'Failover details not available for this component.';
+  const roleLabel = isStateful
+    ? (index === 0 ? '👑 Leader / Primary' : `🛡 Replica ${index}`)
+    : `⚙ Replica ${index + 1} / ${parentNode.props.replicas}`;
+
+  showModal(`🔹 Pod: ${podName}`, `
+    <div class="mb-4">
+      <div class="text-[11px] uppercase font-bold themed-muted">Controller</div>
+      <div class="text-sm themed-text"><code>${parentNode.type}</code> / <code>${parentNode.props.name}</code></div>
+    </div>
+
+    <div class="mb-4">
+      <div class="text-[11px] uppercase font-bold themed-muted">Pod identity</div>
+      <div class="text-sm themed-text">${roleLabel}</div>
+      <div class="text-[11px] themed-dim mt-1">Namespace: <code>${parentNode.props.namespace || 'default'}</code></div>
+      ${parentNode.props.image ? `<div class="text-[11px] themed-dim">Image: <code>${escapeHtml(parentNode.props.image)}</code></div>` : ''}
+      ${parentNode.props.port ? `<div class="text-[11px] themed-dim">Port: <code>${parentNode.props.port}</code></div>` : ''}
+    </div>
+
+    <div class="mb-4 p-3 rounded border-l-4" style="border-color:#ef4444;background:rgba(239,68,68,0.06)">
+      <div class="text-[11px] uppercase font-bold mb-1" style="color:#dc2626">💥 Failover behavior</div>
+      <p class="text-xs themed-muted leading-relaxed">${failoverText}</p>
+    </div>
+
+    <div class="mb-3">
+      <div class="text-[11px] uppercase font-bold themed-muted mb-2">🔗 Related resources</div>
+      <div class="space-y-1">
+        ${siblingLinksHtml(parentNode, index)}
+      </div>
+    </div>
+
+    ${info && info.docs ? `<p class="text-[11px] themed-dim mt-3">📚 <a href="https://${info.docs}" target="_blank" class="text-blue-500 hover:underline">${info.docs}</a></p>` : ''}
+
+    <div class="flex gap-2 mt-4">
+      <button onclick="openExplainModal('${parentNode.type}')" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">ℹ Full Explain</button>
+      <button onclick="closeModal()" class="px-3 py-1.5 text-xs themed-input themed-hover rounded">Close</button>
+    </div>
+  `);
+}
+
+function siblingLinksHtml(parentNode, currentIndex) {
+  const isStateful = ['StatefulSet','Database','DocStore','MessageQueue','TemporalDB'].includes(parentNode.type)
+    || (parentNode.type === 'Custom' && parentNode.props.customKind === 'StatefulSet');
+  const replicas = parentNode.props.replicas || 1;
+  const links = [];
+
+  // Sibling pods (failover peers)
+  for (let i = 0; i < Math.min(replicas, 8); i++) {
+    if (i === currentIndex) continue;
+    const siblingName = isStateful
+      ? `${parentNode.props.name}-${i}`
+      : `${parentNode.props.name}-replica-${i}`;
+    const role = isStateful
+      ? (i === 0 ? 'Leader' : `Follower ${i}`)
+      : `Peer`;
+    links.push(`
+      <a href="#" onclick="event.preventDefault(); closeModal(); setTimeout(() => { openPodDetails(state.nodes['${parentNode.id}'], ${i}, '${siblingName}', ${isStateful}); }, 50);"
+         class="flex items-center gap-2 text-xs p-2 rounded hover:bg-blue-50 themed-hover border themed-border">
+        <span class="text-red-500">⇄</span>
+        <span class="flex-1 themed-text"><code>${siblingName}</code></span>
+        <span class="text-[10px] themed-dim">${role}</span>
+      </a>
+    `);
+  }
+
+  // Connected resources (services, configmaps, etc.)
+  const connected = state.connections
+    .filter(c => c.from === parentNode.id || c.to === parentNode.id)
+    .map(c => state.nodes[c.from === parentNode.id ? c.to : c.from])
+    .filter(Boolean);
+  connected.forEach(other => {
+    links.push(`
+      <div class="flex items-center gap-2 text-xs p-2 rounded border themed-border">
+        <span class="text-blue-500">🔗</span>
+        <span class="flex-1 themed-text"><code>${escapeHtml(other.props.name)}</code></span>
+        <span class="text-[10px] themed-dim">${other.type}</span>
+      </div>
+    `);
+  });
+
+  return links.length ? links.join('') : '<p class="text-[11px] themed-dim italic">No related resources.</p>';
 }
 
 // -------------------------- CONNECTIONS --------------------------
@@ -615,6 +978,8 @@ function nearestSides(a, b) {
 function redrawConnections() {
   const svg = document.getElementById('connections');
   svg.innerHTML = '';
+
+  // Regular user-drawn connections
   state.connections.forEach(conn => {
     const a = state.nodes[conn.from], b = state.nodes[conn.to];
     if (!a || !b) return;
@@ -631,6 +996,33 @@ function redrawConnections() {
       }
     });
     svg.appendChild(path);
+  });
+
+  // Failover + ownership links for expanded nodes
+  Object.values(state.nodes).forEach(n => {
+    if (!n.expanded || !n.replicaPods || !n.replicaPods.length) return;
+    const positions = replicaPodPositions(n);
+    const podCenters = positions.map(p => ({ x: p.x + 48, y: p.y + 21 }));
+    // Parent controller bottom-center
+    const parentCenter = { x: n.x + 80, y: n.y + 56 };
+
+    // Ownership line: parent → each replica (green dashed)
+    podCenters.forEach(pc => {
+      const mx = (parentCenter.x + pc.x) / 2;
+      const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+      path.setAttribute('class', 'ownership');
+      path.setAttribute('d', `M ${parentCenter.x} ${parentCenter.y} C ${mx} ${parentCenter.y}, ${mx} ${pc.y}, ${pc.x} ${pc.y}`);
+      svg.appendChild(path);
+    });
+
+    // Failover links: between adjacent pod pairs (red dashed)
+    for (let i = 0; i < podCenters.length - 1; i++) {
+      const a = podCenters[i], b = podCenters[i + 1];
+      const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+      path.setAttribute('class', 'failover');
+      path.setAttribute('d', `M ${a.x} ${a.y + 16} Q ${(a.x + b.x) / 2} ${a.y + 36}, ${b.x} ${b.y + 16}`);
+      svg.appendChild(path);
+    }
   });
 }
 
@@ -720,6 +1112,16 @@ function renderInspector() {
       <button onclick="duplicateNode()" class="flex-1 text-xs bg-slate-200 hover:bg-slate-300 text-slate-800 rounded py-1.5">Duplicate</button>
       <button onclick="deleteNode()" class="flex-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded py-1.5">Delete</button>
     </div>
+
+    ${(n.props.replicas || 1) > 1 ? `
+      <div class="mt-3 p-2 rounded border themed-border" style="background:rgba(59,130,246,0.06)">
+        <div class="text-[11px] font-bold themed-text mb-1">🧬 Replicas &amp; Failover</div>
+        <p class="text-[11px] themed-muted mb-2">This workload runs <strong>${n.props.replicas} pods</strong>. Click to visualize them and their failover links on the canvas.</p>
+        <button onclick="toggleNodeExpand('${n.id}')" class="w-full text-xs px-2 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold">
+          ${n.expanded ? '⤡ Collapse replicas' : '⤢ Expand replicas'}
+        </button>
+      </div>
+    ` : ''}
   `;
 }
 
@@ -753,7 +1155,50 @@ function updateProp(key, val) {
   if (key === 'description' && !n.props.image) {
     n.el.querySelector('.node-sub').textContent = val || '';
   }
+  if (key === 'replicas') {
+    // Re-render the replica badge and stacked appearance
+    updateReplicaVisuals(n);
+  }
   schedulePreview();
+}
+
+function updateReplicaVisuals(n) {
+  const count = n.props.replicas || 1;
+  const workloadType = ['Deployment','StatefulSet','DaemonSet','WebFrontend','APIServer','AppServer','Database','DocStore','Cache','MessageQueue','TemporalServer','TemporalWorker','TemporalClient','TemporalUI','TemporalDB','Custom'].includes(n.type);
+  const hasReplicas = workloadType && count > 1;
+  n.el.classList.toggle('has-replicas', hasReplicas);
+
+  // Update or remove badge
+  let badge = n.el.querySelector('.replica-badge');
+  let btn = n.el.querySelector('.expand-btn');
+  if (hasReplicas) {
+    const isStateful = ['StatefulSet','Database','DocStore','MessageQueue','TemporalDB'].includes(n.type)
+      || (n.type === 'Custom' && n.props.customKind === 'StatefulSet');
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.className = 'replica-badge' + (isStateful ? ' leader-badge' : '');
+      n.el.appendChild(badge);
+    }
+    badge.textContent = '×' + count;
+    badge.title = count + ' replicas';
+    badge.className = 'replica-badge' + (isStateful ? ' leader-badge' : '');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.className = 'expand-btn';
+      btn.textContent = n.expanded ? '⤡' : '⤢';
+      btn.title = 'Expand replicas (or double-click node)';
+      btn.addEventListener('click', ev => { ev.stopPropagation(); toggleNodeExpand(n.id); });
+      n.el.appendChild(btn);
+    }
+    // If currently expanded, re-render the pods since count changed
+    if (n.expanded) renderReplicaPods(n);
+  } else {
+    if (badge) badge.remove();
+    if (btn) btn.remove();
+    n.expanded = false;
+    removeReplicaPods(n);
+  }
+  redrawConnections();
 }
 function updateEnv(text) {
   const n = state.nodes[state.selected]; if (!n) return;
@@ -785,6 +1230,7 @@ function duplicateNode() {
 function deleteNode() {
   const id = state.selected; if (!id) return;
   const n = state.nodes[id];
+  removeReplicaPods(n);
   n.el.remove();
   delete state.nodes[id];
   state.connections = state.connections.filter(c => c.from !== id && c.to !== id);
@@ -807,7 +1253,7 @@ function updateEmptyState() {
 }
 function clearCanvas() {
   if (Object.keys(state.nodes).length && !confirm('Clear the entire canvas?')) return;
-  Object.values(state.nodes).forEach(n => n.el.remove());
+  Object.values(state.nodes).forEach(n => { removeReplicaPods(n); n.el.remove(); });
   state.nodes = {};
   state.connections = [];
   state.selected = null;
@@ -1385,7 +1831,7 @@ function loadGraph(nodeDefs, connDefs) {
   pushHistory();
 }
 function clearCanvasSilent() {
-  Object.values(state.nodes).forEach(n => n.el.remove());
+  Object.values(state.nodes).forEach(n => { removeReplicaPods(n); n.el.remove(); });
   state.nodes = {};
   state.connections = [];
   state.selected = null;
@@ -2807,6 +3253,7 @@ function snapshotState() {
     nodes: Object.values(state.nodes).map(n => ({
       id: n.id, type: n.type, x: n.x, y: n.y, label: n.label,
       preset: n.preset || null,
+      expanded: !!n.expanded,
       props: JSON.parse(JSON.stringify(n.props || {})),
     })),
     connections: state.connections.map(c => ({ from: c.from, to: c.to })),
@@ -2850,6 +3297,7 @@ function restoreSnapshot(snap) {
       props: { ...nd.props },
       forceId: nd.id,
       skipSelect: true,
+      expanded: nd.expanded,
     });
   });
 
