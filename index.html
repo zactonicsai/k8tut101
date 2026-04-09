@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kubernetes on macOS — Interactive Tutorial</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html { scroll-behavior: smooth; }
+  pre { font-family: 'Menlo', 'Monaco', 'Courier New', monospace; }
+  .fade-in { animation: fade 0.2s ease-out; }
+  @keyframes fade { from { opacity: 0; transform: translateY(-4px);} to {opacity:1; transform:translateY(0);} }
+  .step-anchor { scroll-margin-top: 80px; }
+</style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+<!-- NAV -->
+<nav class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200 shadow-sm">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">K8</div>
+      <span class="font-semibold text-slate-900">K8s on macOS Tutorial</span>
+    </div>
+    <div class="hidden md:flex gap-4 text-sm">
+      <a href="#tutorial" class="hover:text-blue-600">Tutorial</a>
+      <a href="#explanations" class="hover:text-blue-600">Explanations</a>
+      <a href="#resources" class="hover:text-blue-600">Resources</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 text-white">
+  <div class="max-w-6xl mx-auto px-4 py-16">
+    <h1 class="text-4xl md:text-5xl font-bold mb-4">Kubernetes Cluster on macOS</h1>
+    <p class="text-lg md:text-xl text-blue-100 max-w-3xl">
+      A step-by-step, beginner-friendly walkthrough for running a real multi-node Kubernetes cluster
+      on your Mac using <strong>kind</strong> (Kubernetes in Docker) and deploying a static HTML page with nginx.
+    </p>
+    <div class="mt-6 flex flex-wrap gap-3">
+      <span class="px-3 py-1 bg-white/20 rounded-full text-sm">macOS</span>
+      <span class="px-3 py-1 bg-white/20 rounded-full text-sm">Docker</span>
+      <span class="px-3 py-1 bg-white/20 rounded-full text-sm">kind</span>
+      <span class="px-3 py-1 bg-white/20 rounded-full text-sm">kubectl</span>
+      <span class="px-3 py-1 bg-white/20 rounded-full text-sm">nginx</span>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 py-12">
+
+<!-- NOTE -->
+<div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg mb-10">
+  <h3 class="font-semibold text-amber-900 mb-1">📝 Quick Note</h3>
+  <p class="text-amber-900 text-sm">
+    "Kubernetes on Docker Compose" isn't a standard combo. Docker Compose and Kubernetes are two different orchestrators.
+    This tutorial uses <strong>kind</strong>, which runs a real Kubernetes cluster using Docker containers as nodes —
+    the closest thing to "K8s on Docker" on a Mac.
+  </p>
+</div>
+
+<!-- TUTORIAL SECTION -->
+<section id="tutorial" class="mb-16">
+  <h2 class="text-3xl font-bold text-slate-900 mb-2">Part 1 · Step-by-Step Tutorial</h2>
+  <p class="text-slate-600 mb-8">Follow these steps in order. Each one builds on the previous.</p>
+
+  <!-- STEP 1 -->
+  <div id="step-1" class="step-anchor bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+    <div class="flex items-start justify-between mb-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</div>
+        <h3 class="text-xl font-semibold">Install Prerequisites</h3>
+      </div>
+      <button onclick="openModal('modal-prereq')" class="text-blue-600 hover:text-blue-800 text-sm font-medium border border-blue-200 px-3 py-1 rounded-lg hover:bg-blue-50">ℹ More Info</button>
+    </div>
+    <p class="text-slate-600 mb-3">Install Homebrew, Docker Desktop, kind, and kubectl.</p>
+    <pre class="bg-slate-900 text-green-300 p-4 rounded-lg text-sm overflow-x-auto"># Install Homebrew (if not installed)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install Docker Desktop
+brew install --cask docker
+
+# Install kind and kubectl
+brew install kind kubectl
+
+# Verify
+docker --version
+kind --version
+kubectl version --client</pre>
+  </div>
+
+  <!-- STEP 2 -->
+  <div id="step-2" class="step-anchor bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+    <div class="flex items-start justify-between mb-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</div>
+        <h3 class="text-xl font-semibold">Create the Cluster Config</h3>
+      </div>
+      <button onclick="openModal('modal-config')" class="text-blue-600 hover:text-blue-800 text-sm font-medium border border-blue-200 px-3 py-1 rounded-lg hover:bg-blue-50">ℹ More Info</button>
+    </div>
+    <p class="text-slate-600 mb-3">Create a working directory and a <code class="bg-slate-100 px-1 rounded">kind-config.yaml</code> file.</p>
+    <pre class="bg-slate-900 text-green-300 p-4 rounded-lg text-sm overflow-x-auto">mkdir ~/k8s-demo && cd ~/k8s-demo</pre>
+    <p class="text-slate-600 mt-3 mb-2"><strong>kind-config.yaml</strong>:</p>
+    <pre class="bg-slate-900 text-blue-200 p-4 rounded-lg text-sm overflow-x-auto">kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 8080
+        protocol: TCP
+  - role: worker
+  - role: worker</pre>
+  </div>
+
+  <!-- STEP 3 -->
+  <div id="step-3" class="step-anchor bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+    <div class="flex items-start justify-between mb-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</div>
+        <h3 class="text-xl font-semibold">Create the Cluster</h3>
+      </div>
+      <button onclick="openModal('modal-create')" class="text-blue-600 hover:text-blue-800 text-sm font-medium border border-blue-200 px-3 py-1 rounded-lg hover:bg-blue-50">ℹ More Info</button>
+    </div>
+    <pre class="bg-slate-900 text-green-300 p-4 rounded-lg text-sm overflow-x-auto">kind create cluster --name demo --config kind-config.yaml
+
+# Verify
+kubectl cluster-info --context kind-demo
+kubectl get nodes</pre>
+  </div>
+
+  <!-- STEP 4 -->
+  <div id="step-4" class="step-anchor bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+    <div class="flex items-start justify-between mb-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">4</div>
+        <h3 class="text-xl font-semibold">Create Static HTML</h3>
+      </div>
+      <button onclick="openModal('modal-html')" class="text-blue-600 hover:text-blue-800 text-sm font-medium border border-blue-200 px-3 py-1 rounded-lg hover:bg-blue-50">ℹ More Info</button>
+    </div>
+    <p class="text-slate-600 mb-3">Create <code class="bg-slate-100 px-1 rounded">index.html</code>:</p>
+    <pre class="bg-slate-900 text-blue-200 p-4 rounded-lg text-sm overflow-x-auto">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;&lt;title&gt;Hello from K8s&lt;/title&gt;&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Hello from Kubernetes on Mac!&lt;/h1&gt;
+  &lt;p&gt;Served by nginx in a kind cluster.&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+  </div>
+
+  <!-- STEP 5 -->
+  <div id="step-5" class="step-anchor bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+    <div class="flex items-start justify-between mb-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">5</div>
+        <h3 class="text-xl font-semibold">Load HTML into a ConfigMap</h3>
+      </div>
+      <button onclick="openModal('modal-configmap')" class="text-blue-600 hover:text-blue-800 text-sm font-medium border border-blue-200 px-3 py-1 rounded-lg hover:bg-blue-50">ℹ More Info</button>
+    </div>
+    <pre class="bg-slate-900 text-green-300 p-4 rounded-lg text-sm overflow-x-auto">kubectl create configmap html-content --from-file=index.html
+
+# Verify
+kubectl get configmap html-content -o yaml</pre>
+  </div>
+
+  <!-- STEP 6 -->
+  <div id="step-6" class="step-anchor bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+    <div class="flex items-start justify-between mb-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">6</div>
+        <h3 class="text-xl font-semibold">Create Deployment &amp; Service</h3>
+      </div>
+      <button onclick="openModal('modal-deploy')" class="text-blue-600 hover:text-blue-800 text-sm font-medium border border-blue-200 px-3 py-1 rounded-lg hover:bg-blue-50">ℹ More Info</button>
+    </div>
+    <p class="text-slate-600 mb-3"><strong>nginx-deployment.yaml</strong>:</p>
+    <pre class="bg-slate-900 text-blue-200 p-4 rounded-lg text-sm overflow-x-auto">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-static
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-static
+  template:
+    metadata:
+      labels:
+        app: nginx-static
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: html
+              mountPath: /usr/share/nginx/html
+      volumes:
+        - name: html
+          configMap:
+            name: html-content
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-static
+spec:
+  type: NodePort
+  selector:
+    app: nginx-static
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30080</pre>
+  </div>
+
+  <!-- STEP 7 -->
+  <div id="step-7" class="step-anchor bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+    <div class="flex items-start justify-between mb-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">7</div>
+        <h3 class="text-xl font-semibold">Apply &amp; View</h3>
+      </div>
+      <button onclick="openModal('modal-apply')" class="text-blue-600 hover:text-blue-800 text-sm font-medium border border-blue-200 px-3 py-1 rounded-lg hover:bg-blue-50">ℹ More Info</button>
+    </div>
+    <pre class="bg-slate-900 text-green-300 p-4 rounded-lg text-sm overflow-x-auto">kubectl apply -f nginx-deployment.yaml
+kubectl get pods -w
+kubectl get svc nginx-static
+
+# Then open in browser:
+# http://localhost:8080</pre>
+  </div>
+
+  <!-- STEP 8 -->
+  <div id="step-8" class="step-anchor bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+    <div class="flex items-start justify-between mb-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-red-600 text-white rounded-full flex items-center justify-center font-bold">8</div>
+        <h3 class="text-xl font-semibold">Cleanup</h3>
+      </div>
+      <button onclick="openModal('modal-cleanup')" class="text-blue-600 hover:text-blue-800 text-sm font-medium border border-blue-200 px-3 py-1 rounded-lg hover:bg-blue-50">ℹ More Info</button>
+    </div>
+    <pre class="bg-slate-900 text-green-300 p-4 rounded-lg text-sm overflow-x-auto">kubectl delete -f nginx-deployment.yaml
+kubectl delete configmap html-content
+kind delete cluster --name demo</pre>
+  </div>
+</section>
+
+<!-- EXPLANATIONS SECTION -->
+<section id="explanations" class="mb-16">
+  <h2 class="text-3xl font-bold text-slate-900 mb-2">Part 2 · Deep Explanations</h2>
+  <p class="text-slate-600 mb-8">What each command, file, and setting actually does — in plain language.</p>
+
+  <div class="grid md:grid-cols-2 gap-6">
+
+    <!-- EXP CARD 1 -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-2xl">🍺</span>
+        <h3 class="text-lg font-semibold">Homebrew</h3>
+      </div>
+      <p class="text-slate-600 text-sm mb-3">
+        Homebrew is macOS's package manager — think of it as the "App Store for command-line tools."
+        Instead of downloading zip files and dragging apps around, you type <code class="bg-slate-100 px-1 rounded">brew install something</code> and it handles everything.
+      </p>
+      <div class="flex items-center justify-between mt-2">
+        <a href="https://brew.sh" target="_blank" class="text-blue-600 text-sm hover:underline">📖 brew.sh →</a>
+        <button onclick="openModal('deep-homebrew')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:shadow-md transition">✨ Show Me More</button>
+      </div>
+    </div>
+
+    <!-- EXP CARD 2 -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-2xl">🐳</span>
+        <h3 class="text-lg font-semibold">Docker Desktop</h3>
+      </div>
+      <p class="text-slate-600 text-sm mb-3">
+        Docker lets you run apps in "containers" — isolated mini-environments. On Mac, Docker Desktop runs a tiny Linux VM
+        under the hood because Docker is Linux-native. kind uses Docker to create each Kubernetes node as a container.
+      </p>
+      <div class="flex items-center justify-between mt-2">
+        <a href="https://docs.docker.com/desktop/install/mac-install/" target="_blank" class="text-blue-600 text-sm hover:underline">📖 Docker Docs →</a>
+        <button onclick="openModal('deep-docker')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:shadow-md transition">✨ Show Me More</button>
+      </div>
+    </div>
+
+    <!-- EXP CARD 3 -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-2xl">☸️</span>
+        <h3 class="text-lg font-semibold">kind (K8s in Docker)</h3>
+      </div>
+      <p class="text-slate-600 text-sm mb-3">
+        kind runs Kubernetes nodes as Docker containers instead of real VMs or machines. Perfect for local development
+        and testing. Each "node" you see in <code class="bg-slate-100 px-1 rounded">kubectl get nodes</code> is actually a Docker container.
+      </p>
+      <div class="flex items-center justify-between mt-2">
+        <a href="https://kind.sigs.k8s.io/" target="_blank" class="text-blue-600 text-sm hover:underline">📖 kind Docs →</a>
+        <button onclick="openModal('deep-kind')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:shadow-md transition">✨ Show Me More</button>
+      </div>
+    </div>
+
+    <!-- EXP CARD 4 -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-2xl">🎮</span>
+        <h3 class="text-lg font-semibold">kubectl</h3>
+      </div>
+      <p class="text-slate-600 text-sm mb-3">
+        kubectl (pronounced "koob-control" or "koob-cuttle") is the command-line remote control for Kubernetes.
+        Every time you want to see, create, or delete something in your cluster, you use kubectl.
+      </p>
+      <div class="flex items-center justify-between mt-2">
+        <a href="https://kubernetes.io/docs/reference/kubectl/" target="_blank" class="text-blue-600 text-sm hover:underline">📖 kubectl Docs →</a>
+        <button onclick="openModal('deep-kubectl')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:shadow-md transition">✨ Show Me More</button>
+      </div>
+    </div>
+
+    <!-- EXP CARD 5 -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-2xl">📦</span>
+        <h3 class="text-lg font-semibold">Pods</h3>
+      </div>
+      <p class="text-slate-600 text-sm mb-3">
+        A Pod is the smallest unit in Kubernetes — it wraps one (or more) containers. You don't usually create pods directly;
+        you create a Deployment and it creates pods for you. If a pod dies, the Deployment makes a new one.
+      </p>
+      <div class="flex items-center justify-between mt-2">
+        <a href="https://kubernetes.io/docs/concepts/workloads/pods/" target="_blank" class="text-blue-600 text-sm hover:underline">📖 Pods →</a>
+        <button onclick="openModal('deep-pods')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:shadow-md transition">✨ Show Me More</button>
+      </div>
+    </div>
+
+    <!-- EXP CARD 6 -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-2xl">🚀</span>
+        <h3 class="text-lg font-semibold">Deployment</h3>
+      </div>
+      <p class="text-slate-600 text-sm mb-3">
+        A Deployment is a "blueprint + manager" for your pods. It says "I want 2 copies of this nginx container running at all times"
+        and K8s makes sure that's always true — even if a pod crashes or a node dies.
+      </p>
+      <div class="flex items-center justify-between mt-2">
+        <a href="https://kubernetes.io/docs/concepts/workloads/controllers/deployment/" target="_blank" class="text-blue-600 text-sm hover:underline">📖 Deployments →</a>
+        <button onclick="openModal('deep-deployment')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:shadow-md transition">✨ Show Me More</button>
+      </div>
+    </div>
+
+    <!-- EXP CARD 7 -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-2xl">🌐</span>
+        <h3 class="text-lg font-semibold">Service</h3>
+      </div>
+      <p class="text-slate-600 text-sm mb-3">
+        Pods come and go, and each gets a new IP. A Service gives you one stable address that always forwards to the live pods.
+        Think of it as a receptionist that knows which pods are currently awake.
+      </p>
+      <div class="flex items-center justify-between mt-2">
+        <a href="https://kubernetes.io/docs/concepts/services-networking/service/" target="_blank" class="text-blue-600 text-sm hover:underline">📖 Services →</a>
+        <button onclick="openModal('deep-service')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:shadow-md transition">✨ Show Me More</button>
+      </div>
+    </div>
+
+    <!-- EXP CARD 8 -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-2xl">⚙️</span>
+        <h3 class="text-lg font-semibold">ConfigMap</h3>
+      </div>
+      <p class="text-slate-600 text-sm mb-3">
+        A ConfigMap stores configuration data (files, environment variables, key-value pairs) separately from your container image.
+        We use one here to inject our <code class="bg-slate-100 px-1 rounded">index.html</code> into nginx without rebuilding the image.
+      </p>
+      <div class="flex items-center justify-between mt-2">
+        <a href="https://kubernetes.io/docs/concepts/configuration/configmap/" target="_blank" class="text-blue-600 text-sm hover:underline">📖 ConfigMaps →</a>
+        <button onclick="openModal('deep-configmap')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:shadow-md transition">✨ Show Me More</button>
+      </div>
+    </div>
+
+    <!-- EXP CARD 9 -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-2xl">🔌</span>
+        <h3 class="text-lg font-semibold">NodePort &amp; Port Mapping</h3>
+      </div>
+      <p class="text-slate-600 text-sm mb-3">
+        NodePort opens a port on every cluster node (here 30080). In kind, nodes are Docker containers, so we also map
+        container port 30080 → Mac host port 8080 in the kind config. That's the chain that lets you visit localhost:8080.
+      </p>
+      <div class="flex items-center justify-between mt-2">
+        <a href="https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport" target="_blank" class="text-blue-600 text-sm hover:underline">📖 NodePort →</a>
+        <button onclick="openModal('deep-nodeport')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:shadow-md transition">✨ Show Me More</button>
+      </div>
+    </div>
+
+    <!-- EXP CARD 10 -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-2xl">📄</span>
+        <h3 class="text-lg font-semibold">YAML Manifests</h3>
+      </div>
+      <p class="text-slate-600 text-sm mb-3">
+        Kubernetes is "declarative" — you describe what you want in a YAML file and K8s figures out how to make it happen.
+        The <code class="bg-slate-100 px-1 rounded">---</code> separator lets you put multiple resources (like Deployment + Service) in one file.
+      </p>
+      <div class="flex items-center justify-between mt-2">
+        <a href="https://kubernetes.io/docs/concepts/overview/working-with-objects/" target="_blank" class="text-blue-600 text-sm hover:underline">📖 K8s Objects →</a>
+        <button onclick="openModal('deep-yaml')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:shadow-md transition">✨ Show Me More</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- RESOURCES -->
+<section id="resources" class="mb-16">
+  <h2 class="text-3xl font-bold text-slate-900 mb-6">Part 3 · Official Documentation</h2>
+  <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <a href="https://kubernetes.io/docs/home/" target="_blank" class="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition">
+      <h4 class="font-semibold text-slate-900">Kubernetes Docs</h4>
+      <p class="text-sm text-slate-600 mt-1">The official K8s documentation home.</p>
+    </a>
+    <a href="https://kind.sigs.k8s.io/docs/user/quick-start/" target="_blank" class="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition">
+      <h4 class="font-semibold text-slate-900">kind Quick Start</h4>
+      <p class="text-sm text-slate-600 mt-1">Install and use kind for local clusters.</p>
+    </a>
+    <a href="https://docs.docker.com/desktop/install/mac-install/" target="_blank" class="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition">
+      <h4 class="font-semibold text-slate-900">Docker Desktop (Mac)</h4>
+      <p class="text-sm text-slate-600 mt-1">Install guide for macOS.</p>
+    </a>
+    <a href="https://kubernetes.io/docs/reference/kubectl/cheatsheet/" target="_blank" class="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition">
+      <h4 class="font-semibold text-slate-900">kubectl Cheat Sheet</h4>
+      <p class="text-sm text-slate-600 mt-1">Essential kubectl commands.</p>
+    </a>
+    <a href="https://hub.docker.com/_/nginx" target="_blank" class="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition">
+      <h4 class="font-semibold text-slate-900">nginx Docker Image</h4>
+      <p class="text-sm text-slate-600 mt-1">Official nginx image on Docker Hub.</p>
+    </a>
+    <a href="https://brew.sh" target="_blank" class="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition">
+      <h4 class="font-semibold text-slate-900">Homebrew</h4>
+      <p class="text-sm text-slate-600 mt-1">macOS package manager.</p>
+    </a>
+  </div>
+</section>
+
+</main>
+
+<!-- MODALS -->
+<div id="modalContainer"></div>
+
+<!-- MODAL TEMPLATE (hidden) -->
+<template id="modalTemplate">
+  <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 fade-in" onclick="if(event.target===this)closeModal(this)">
+    <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto shadow-2xl">
+      <div class="sticky top-0 bg-white border-b border-slate-200 p-5 flex justify-between items-center rounded-t-2xl">
+        <h3 class="text-xl font-bold text-slate-900 modal-title"></h3>
+        <button onclick="closeModal(this.closest('.fixed'))" class="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
+      </div>
+      <div class="p-6 modal-body text-slate-700 text-sm space-y-4"></div>
+    </div>
+  </div>
+</template>
+
+<footer class="bg-slate-900 text-slate-400 py-8 mt-12">
+  <div class="max-w-6xl mx-auto px-4 text-center text-sm">
+    Built for learning Kubernetes on macOS · Uses kind + Docker + kubectl
+  </div>
+</footer>
+
+<script>
+// Modal content
+const modalData = {
+  'modal-prereq': {
+    title: 'Prerequisites Explained',
+    body: `
+      <p><strong>Why Homebrew?</strong> macOS doesn't come with a built-in way to install developer tools. Homebrew solves that with one-line installs.</p>
+      <p><strong>Why Docker Desktop?</strong> kind runs each Kubernetes node as a Docker container. Without Docker, there's nothing for kind to use. Docker Desktop also runs a small Linux VM on Mac because Docker itself is Linux-based.</p>
+      <p><strong>Why kind?</strong> It's the simplest way to get a real multi-node K8s cluster locally. Alternatives: Docker Desktop's built-in K8s, minikube, k3d.</p>
+      <p><strong>Why kubectl?</strong> It's how you talk to any Kubernetes cluster — local or cloud. Every K8s user installs kubectl.</p>
+      <p><strong>💡 Tip:</strong> Make sure Docker Desktop is actually <em>running</em> (whale icon in menu bar steady, not animated) before running kind commands.</p>
+      <div class="flex flex-wrap gap-2 mt-3">
+        <a href="https://brew.sh" target="_blank" class="text-blue-600 hover:underline">Homebrew</a> ·
+        <a href="https://docs.docker.com/desktop/install/mac-install/" target="_blank" class="text-blue-600 hover:underline">Docker</a> ·
+        <a href="https://kind.sigs.k8s.io/docs/user/quick-start/#installation" target="_blank" class="text-blue-600 hover:underline">kind</a> ·
+        <a href="https://kubernetes.io/docs/tasks/tools/" target="_blank" class="text-blue-600 hover:underline">kubectl</a>
+      </div>`
+  },
+  'modal-config': {
+    title: 'kind-config.yaml Explained',
+    body: `
+      <p><strong>kind:</strong> The type of Kubernetes object — here, a kind "Cluster" definition.</p>
+      <p><strong>apiVersion:</strong> Which version of the kind config schema we're using. Always check kind docs for the current version.</p>
+      <p><strong>nodes:</strong> The machines in your cluster. We have 1 control-plane (the "brain") and 2 workers (where pods actually run). Real clusters separate these for reliability.</p>
+      <p><strong>extraPortMappings:</strong> This is the magic that lets you reach the cluster from your Mac. It maps port 30080 inside the kind container to port 8080 on your Mac. Without this, NodePort services would be unreachable from your browser.</p>
+      <p><strong>Why hostPort 8080?</strong> Port 80 requires root on macOS. Using 8080 avoids that.</p>
+      <p><strong>💡 Simple analogy:</strong> Think of kind nodes as apartments in a building. The port mapping is like installing a doorbell on the street that rings inside apartment #30080.</p>
+      <a href="https://kind.sigs.k8s.io/docs/user/configuration/" target="_blank" class="text-blue-600 hover:underline">📖 Full kind config reference →</a>`
+  },
+  'modal-create': {
+    title: 'kind create cluster',
+    body: `
+      <p>This command does a <em>lot</em> under the hood:</p>
+      <ol class="list-decimal pl-5 space-y-1">
+        <li>Downloads the kind "node image" (a special Docker image with Kubernetes pre-installed).</li>
+        <li>Starts Docker containers for each node in your config.</li>
+        <li>Bootstraps the Kubernetes control plane (API server, scheduler, controller manager, etcd).</li>
+        <li>Joins worker nodes to the cluster.</li>
+        <li>Writes credentials to <code class="bg-slate-100 px-1 rounded">~/.kube/config</code> so kubectl can find it.</li>
+      </ol>
+      <p><strong>--name demo:</strong> Names your cluster. You can run multiple clusters with different names.</p>
+      <p><strong>kubectl cluster-info:</strong> Confirms kubectl can reach the cluster API.</p>
+      <p><strong>kubectl get nodes:</strong> Lists the nodes; all should say "Ready".</p>
+      <p><strong>💡 Troubleshooting:</strong> If it hangs, Docker Desktop might not have enough RAM. Give it at least 4GB in Docker Desktop → Settings → Resources.</p>
+      <a href="https://kind.sigs.k8s.io/docs/user/quick-start/#creating-a-cluster" target="_blank" class="text-blue-600 hover:underline">📖 kind cluster docs →</a>`
+  },
+  'modal-html': {
+    title: 'The Static HTML',
+    body: `
+      <p>This is just a standard HTML file — nothing K8s-specific. The point of this step is to have some content that nginx can serve.</p>
+      <p>In a real app, this file might be hundreds of assets (HTML, CSS, JS, images). For that, you'd typically bake them into a custom Docker image instead of using a ConfigMap.</p>
+      <p><strong>💡 When to use ConfigMap vs custom image:</strong></p>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>ConfigMap:</strong> Small files, quick experiments, config that changes often.</li>
+        <li><strong>Custom image:</strong> Production apps, large asset bundles, anything that needs a build step.</li>
+      </ul>`
+  },
+  'modal-configmap': {
+    title: 'kubectl create configmap',
+    body: `
+      <p><strong>kubectl create configmap html-content --from-file=index.html</strong></p>
+      <p>Breaking this down:</p>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><code class="bg-slate-100 px-1 rounded">create configmap</code>: Make a new ConfigMap resource.</li>
+        <li><code class="bg-slate-100 px-1 rounded">html-content</code>: The name we're giving it.</li>
+        <li><code class="bg-slate-100 px-1 rounded">--from-file=index.html</code>: Load this file as an entry in the ConfigMap. The filename becomes the key.</li>
+      </ul>
+      <p>When mounted into a pod, the ConfigMap becomes a directory and each key becomes a file. So <code class="bg-slate-100 px-1 rounded">/usr/share/nginx/html/index.html</code> will contain our HTML.</p>
+      <p><strong>💡 Limits:</strong> ConfigMaps max out at 1 MiB. For bigger content, use a Volume or a custom image.</p>
+      <a href="https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/" target="_blank" class="text-blue-600 hover:underline">📖 ConfigMap tasks →</a>`
+  },
+  'modal-deploy': {
+    title: 'nginx-deployment.yaml Explained',
+    body: `
+      <p><strong>Deployment section:</strong></p>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><code class="bg-slate-100 px-1 rounded">replicas: 2</code> — Keep 2 identical pods running at all times.</li>
+        <li><code class="bg-slate-100 px-1 rounded">selector.matchLabels</code> — How the Deployment finds "its" pods.</li>
+        <li><code class="bg-slate-100 px-1 rounded">template</code> — The blueprint for each pod.</li>
+        <li><code class="bg-slate-100 px-1 rounded">image: nginx:alpine</code> — Lightweight nginx image from Docker Hub.</li>
+        <li><code class="bg-slate-100 px-1 rounded">volumeMounts</code> — Mounts the ConfigMap at nginx's default web root.</li>
+        <li><code class="bg-slate-100 px-1 rounded">volumes.configMap</code> — References the ConfigMap we made earlier.</li>
+      </ul>
+      <p><strong>Service section:</strong></p>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><code class="bg-slate-100 px-1 rounded">type: NodePort</code> — Exposes on every node at a fixed port.</li>
+        <li><code class="bg-slate-100 px-1 rounded">selector</code> — Which pods to route traffic to (matches Deployment labels).</li>
+        <li><code class="bg-slate-100 px-1 rounded">nodePort: 30080</code> — The port on the node. Matches our kind port mapping.</li>
+      </ul>
+      <p><strong>💡 The traffic flow:</strong> Browser → localhost:8080 → Docker port mapping → node:30080 → Service → Pod:80 → nginx serves your HTML.</p>
+      <a href="https://kubernetes.io/docs/concepts/workloads/controllers/deployment/" target="_blank" class="text-blue-600 hover:underline">📖 Deployments →</a>`
+  },
+  'modal-apply': {
+    title: 'kubectl apply & verification',
+    body: `
+      <p><strong>kubectl apply -f file.yaml:</strong> "Apply" means "make the cluster match this file." If resources don't exist, it creates them. If they exist, it updates them. This is the preferred way vs. <code class="bg-slate-100 px-1 rounded">create</code>.</p>
+      <p><strong>kubectl get pods -w:</strong> The <code class="bg-slate-100 px-1 rounded">-w</code> means "watch" — shows live updates as pods transition from Pending → ContainerCreating → Running.</p>
+      <p><strong>kubectl get svc:</strong> Lists services and their ports/IPs.</p>
+      <p><strong>💡 If your page doesn't load:</strong></p>
+      <ul class="list-disc pl-5 space-y-1">
+        <li>Check pods are Running: <code class="bg-slate-100 px-1 rounded">kubectl get pods</code></li>
+        <li>Check pod logs: <code class="bg-slate-100 px-1 rounded">kubectl logs &lt;pod-name&gt;</code></li>
+        <li>Describe the pod: <code class="bg-slate-100 px-1 rounded">kubectl describe pod &lt;name&gt;</code></li>
+        <li>Make sure port 8080 isn't already in use on your Mac.</li>
+      </ul>
+      <a href="https://kubernetes.io/docs/reference/kubectl/cheatsheet/" target="_blank" class="text-blue-600 hover:underline">📖 kubectl cheat sheet →</a>`
+  },
+  'modal-cleanup': {
+    title: 'Cleaning Up',
+    body: `
+      <p>Always clean up local clusters when done — they eat RAM and CPU even when idle.</p>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><code class="bg-slate-100 px-1 rounded">kubectl delete -f</code> — Removes the Deployment and Service.</li>
+        <li><code class="bg-slate-100 px-1 rounded">kubectl delete configmap</code> — Removes the ConfigMap.</li>
+        <li><code class="bg-slate-100 px-1 rounded">kind delete cluster</code> — Destroys the entire cluster (all Docker node containers).</li>
+      </ul>
+      <p><strong>💡 Nuclear option:</strong> If things get weird, <code class="bg-slate-100 px-1 rounded">kind delete cluster --name demo</code> and start over. kind clusters are meant to be disposable.</p>`
+  },
+
+  // ============ DEEP DIVE MODALS ============
+  'deep-homebrew': {
+    title: '🍺 Homebrew — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>Homebrew is a Ruby-based package manager created in 2009 by Max Howell. It installs software to <code class="bg-slate-100 px-1 rounded">/opt/homebrew</code> (Apple Silicon) or <code class="bg-slate-100 px-1 rounded">/usr/local</code> (Intel) without touching system directories, so it never needs root for most operations. Packages ("formulae") are Ruby files in a Git repo — fully transparent and auditable.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Code snippet</h4>
+      <pre class="bg-slate-900 text-green-300 p-3 rounded text-xs overflow-x-auto"># Install multiple tools at once
+brew install git node python kubectl kind
+
+# Search before installing
+brew search postgres
+
+# List what you've installed
+brew list
+
+# Keep everything up to date
+brew update && brew upgrade
+
+# Install GUI apps (casks)
+brew install --cask visual-studio-code slack</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it in the real world</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Airbnb, Stripe, Shopify</strong> — onboarding scripts for new engineers start with a <code class="bg-slate-100 px-1 rounded">Brewfile</code> listing every required dev tool.</li>
+        <li><strong>GitHub</strong> — ships a public Brewfile for its own engineers.</li>
+        <li><strong>Indie developers</strong> — most open-source Mac CLI tools (gh, fzf, ripgrep, bat) distribute through Homebrew as their primary channel.</li>
+        <li><strong>CI/CD pipelines</strong> — GitHub Actions' macOS runners come with Homebrew pre-installed for tool setup.</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://formulae.brew.sh" target="_blank" class="text-blue-600 hover:underline">Browse all 7000+ formulae</a></p>`
+  },
+
+  'deep-docker': {
+    title: '🐳 Docker Desktop — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>Docker uses Linux kernel features (namespaces, cgroups, union filesystems) to isolate processes. A container is NOT a VM — it shares the host kernel but has its own filesystem, network, and process tree. On macOS, Docker Desktop runs a lightweight Linux VM (using Apple's Virtualization.framework or HyperKit) because macOS doesn't have these Linux kernel features natively. All your containers run inside that VM.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Code snippet</h4>
+      <pre class="bg-slate-900 text-green-300 p-3 rounded text-xs overflow-x-auto"># Run a container from an image
+docker run -d -p 8080:80 --name web nginx:alpine
+
+# See what's running
+docker ps
+
+# Jump inside a running container
+docker exec -it web sh
+
+# Build your own image from a Dockerfile
+docker build -t myapp:v1 .
+
+# Push to a registry
+docker push myregistry.io/myapp:v1</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it in the real world</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Netflix</strong> — packages every microservice (1000+) as Docker images for deployment to AWS.</li>
+        <li><strong>Spotify</strong> — runs thousands of Dockerized microservices; built Backstage developer portal around container workflows.</li>
+        <li><strong>PayPal</strong> — migrated to Docker to speed up deployments from weeks to minutes.</li>
+        <li><strong>The New York Times</strong> — uses Docker for their publishing platform and A/B testing infrastructure.</li>
+        <li><strong>Every major cloud</strong> (AWS ECS/Fargate, Google Cloud Run, Azure Container Instances) runs Docker images as first-class citizens.</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://www.docker.com/customers/" target="_blank" class="text-blue-600 hover:underline">Docker customer stories</a></p>`
+  },
+
+  'deep-kind': {
+    title: '☸️ kind — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>kind (Kubernetes IN Docker) was built by the Kubernetes SIG-Testing team specifically to test Kubernetes itself. Each "node" is a Docker container running systemd, kubelet, containerd, and all the K8s components. It can spin up a real multi-node cluster in under a minute. Unlike minikube (which uses a VM), kind is much faster and lighter — but it only runs where Docker runs.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Code snippet</h4>
+      <pre class="bg-slate-900 text-green-300 p-3 rounded text-xs overflow-x-auto"># Simple one-node cluster
+kind create cluster
+
+# Multi-node cluster with specific K8s version
+kind create cluster --image kindest/node:v1.29.0 \\
+  --config multi-node.yaml
+
+# Load a local Docker image into the cluster
+kind load docker-image myapp:dev --name demo
+
+# Run multiple clusters simultaneously
+kind create cluster --name dev
+kind create cluster --name staging
+kind get clusters</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it in the real world</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Kubernetes project itself</strong> — kind is the primary tool for running K8s CI tests on every pull request (thousands per day).</li>
+        <li><strong>Istio, Knative, Tekton, Argo CD</strong> — CNCF projects use kind in their automated test suites.</li>
+        <li><strong>Red Hat, VMware, Google</strong> — use kind for integration testing of operators and controllers.</li>
+        <li><strong>Developer teams everywhere</strong> — local feature branch testing before pushing to real clusters.</li>
+        <li><strong>Security scanners (Trivy, Falco)</strong> — use kind in their demo/getting-started guides.</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://github.com/kubernetes-sigs/kind" target="_blank" class="text-blue-600 hover:underline">kind on GitHub</a></p>`
+  },
+
+  'deep-kubectl': {
+    title: '🎮 kubectl — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>kubectl is a Go binary that talks to the Kubernetes API server over HTTPS. Every command becomes one or more REST calls. Your credentials live in <code class="bg-slate-100 px-1 rounded">~/.kube/config</code>, which can hold multiple cluster contexts — you can switch between local kind, a staging cluster, and production with <code class="bg-slate-100 px-1 rounded">kubectl config use-context</code>. Under the hood, "kubectl apply" does a 3-way merge (last applied, current state, desired state).</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Code snippet</h4>
+      <pre class="bg-slate-900 text-green-300 p-3 rounded text-xs overflow-x-auto"># Switch between clusters
+kubectl config get-contexts
+kubectl config use-context prod-cluster
+
+# Inspect anything
+kubectl get pods -A                    # all namespaces
+kubectl describe pod my-pod             # detailed state
+kubectl logs -f my-pod                  # stream logs
+
+# Debug inside a running pod
+kubectl exec -it my-pod -- /bin/sh
+
+# Port-forward to access a pod locally
+kubectl port-forward svc/my-api 8080:80
+
+# Apply and watch
+kubectl apply -f ./manifests/
+kubectl rollout status deploy/my-app</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it in the real world</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Every K8s-using company on the planet</strong> — kubectl is THE way humans interact with clusters.</li>
+        <li><strong>Uber, Lyft, DoorDash</strong> — SREs use kubectl daily for debugging and incident response.</li>
+        <li><strong>CI/CD systems (Jenkins, GitLab, GitHub Actions)</strong> — run kubectl commands to deploy apps.</li>
+        <li><strong>GitOps tools (Argo CD, Flux)</strong> — use the same Kubernetes API that kubectl talks to.</li>
+        <li><strong>Training and certifications</strong> — the CKA/CKAD exams are essentially kubectl proficiency tests.</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://kubernetes.io/docs/reference/kubectl/cheatsheet/" target="_blank" class="text-blue-600 hover:underline">Official kubectl cheat sheet</a></p>`
+  },
+
+  'deep-pods': {
+    title: '📦 Pods — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>A Pod is a group of one or more containers that share a network namespace (same IP, same localhost) and can share storage volumes. The classic use case: a main app container + a "sidecar" container handling logs, metrics, or a proxy. Pods are ephemeral — if a node dies, the pod is gone forever. A new pod with a new name and IP replaces it. This is why you never rely on a specific pod IP; you go through a Service.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Code snippet</h4>
+      <pre class="bg-slate-900 text-green-300 p-3 rounded text-xs overflow-x-auto">apiVersion: v1
+kind: Pod
+metadata:
+  name: app-with-sidecar
+spec:
+  containers:
+    - name: main-app
+      image: myapp:v1
+      ports:
+        - containerPort: 8080
+    - name: log-shipper          # sidecar
+      image: fluent/fluent-bit
+      volumeMounts:
+        - name: logs
+          mountPath: /var/log
+  volumes:
+    - name: logs
+      emptyDir: {}</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it in the real world</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Istio service mesh</strong> — injects an Envoy proxy sidecar into every pod for traffic management across companies like eBay, Airbnb, and Splunk.</li>
+        <li><strong>Datadog, New Relic</strong> — ship log/metric collection agents as sidecars in customer pods.</li>
+        <li><strong>Uber</strong> — uses init containers (a special kind of pod container) to warm caches before the main app starts.</li>
+        <li><strong>Databases like Cassandra and MongoDB on K8s</strong> — run each replica as a dedicated pod, often with backup/monitoring sidecars.</li>
+        <li><strong>ML inference</strong> — Seldon and KFServing run model pods with routing/metrics sidecars.</li>
+      </ul>`
+  },
+
+  'deep-deployment': {
+    title: '🚀 Deployment — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>A Deployment is a controller that manages ReplicaSets, which in turn manage Pods. When you update the image, the Deployment creates a new ReplicaSet and gradually shifts pods from old to new — this is a "rolling update." It keeps a history so you can <code class="bg-slate-100 px-1 rounded">kubectl rollout undo</code> to any previous version. Deployments handle 90% of stateless workloads. For stateful things (databases), you use StatefulSet instead.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Code snippet</h4>
+      <pre class="bg-slate-900 text-green-300 p-3 rounded text-xs overflow-x-auto"># Scale up/down instantly
+kubectl scale deployment nginx-static --replicas=10
+
+# Update to a new image version (triggers rolling update)
+kubectl set image deployment/nginx-static \\
+  nginx=nginx:1.25-alpine
+
+# Watch the rollout
+kubectl rollout status deployment/nginx-static
+
+# See rollout history
+kubectl rollout history deployment/nginx-static
+
+# Roll back if something's broken
+kubectl rollout undo deployment/nginx-static</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it in the real world</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Spotify</strong> — deploys new versions of microservices hundreds of times per day using Deployments with canary strategies.</li>
+        <li><strong>Pinterest</strong> — uses Deployments with HPA (Horizontal Pod Autoscaler) to scale image-serving workloads for traffic spikes.</li>
+        <li><strong>Reddit</strong> — powers nearly all web-facing services through K8s Deployments.</li>
+        <li><strong>Shopify</strong> — runs Black Friday traffic by pre-scaling Deployments to thousands of replicas.</li>
+        <li><strong>Zalando, Mercari, Adidas</strong> — public case studies of Deployment-based microservices at scale.</li>
+      </ul>`
+  },
+
+  'deep-service': {
+    title: '🌐 Service — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>A Service is a stable virtual IP (ClusterIP) + DNS name that load-balances traffic across matching pods. It's implemented by kube-proxy using iptables or IPVS rules on every node. Four types exist: <strong>ClusterIP</strong> (internal only, default), <strong>NodePort</strong> (exposed on node ports — we use this), <strong>LoadBalancer</strong> (provisions a cloud load balancer), and <strong>ExternalName</strong> (DNS alias). In production clouds, you almost always use LoadBalancer or an Ingress controller.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Code snippet</h4>
+      <pre class="bg-slate-900 text-green-300 p-3 rounded text-xs overflow-x-auto">apiVersion: v1
+kind: Service
+metadata:
+  name: my-api
+spec:
+  type: LoadBalancer     # cloud provisions real LB
+  selector:
+    app: my-api
+  ports:
+    - port: 443
+      targetPort: 8080
+---
+# Services get automatic DNS:
+# my-api.default.svc.cluster.local
+# Any pod can call: curl http://my-api/health</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it in the real world</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Netflix</strong> — uses Services for internal microservice communication across thousands of pods.</li>
+        <li><strong>Goldman Sachs</strong> — wraps legacy trading systems in Services so newer K8s apps can call them by DNS name.</li>
+        <li><strong>The New York Times</strong> — LoadBalancer services expose article rendering APIs to their CDN.</li>
+        <li><strong>Slack</strong> — Services front backend APIs that handle billions of messages.</li>
+        <li><strong>Any multi-service app</strong> — Services are how frontend pods find backend pods without hardcoding IPs.</li>
+      </ul>`
+  },
+
+  'deep-configmap': {
+    title: '⚙️ ConfigMap — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>ConfigMaps decouple configuration from container images. The same image can run in dev, staging, and prod by pointing at different ConfigMaps. Max size is 1 MiB per ConfigMap. They can be consumed as environment variables, command-line args, or mounted as files (we mounted ours at <code class="bg-slate-100 px-1 rounded">/usr/share/nginx/html</code>). For secrets (passwords, API keys, TLS certs), use a <strong>Secret</strong> instead — same concept but base64-encoded and treated specially by RBAC.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Code snippet</h4>
+      <pre class="bg-slate-900 text-green-300 p-3 rounded text-xs overflow-x-auto"># From a literal value
+kubectl create configmap app-config \\
+  --from-literal=LOG_LEVEL=debug \\
+  --from-literal=DB_HOST=postgres.default
+
+# From an entire directory of files
+kubectl create configmap nginx-conf \\
+  --from-file=./config/
+
+# Use in a pod as env vars
+envFrom:
+  - configMapRef:
+      name: app-config
+
+# Or mount as files
+volumeMounts:
+  - name: conf
+    mountPath: /etc/nginx/conf.d</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it in the real world</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Adidas</strong> — uses ConfigMaps to manage feature flags and A/B test configurations across hundreds of microservices.</li>
+        <li><strong>Capital One</strong> — regulatory/compliance configs per environment live in ConfigMaps, making audit trails easier.</li>
+        <li><strong>HashiCorp Vault + External Secrets</strong> — sync secrets from Vault into K8s Secrets (the ConfigMap sibling).</li>
+        <li><strong>Prometheus + Grafana</strong> — scrape configs, alert rules, and dashboards are all typically stored in ConfigMaps.</li>
+        <li><strong>NGINX Ingress Controller</strong> — its entire runtime configuration is driven by ConfigMaps.</li>
+      </ul>`
+  },
+
+  'deep-nodeport': {
+    title: '🔌 NodePort & Port Mapping — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>NodePort opens the same port (range 30000–32767 by default) on <em>every</em> node in the cluster. Traffic to any node on that port gets routed to a matching pod — possibly on a different node — via kube-proxy. It's simple but crude: no TLS termination, no path-based routing, no HTTP-level features. In production, you almost never expose NodePort directly; you put a cloud LoadBalancer or an Ingress controller (like NGINX Ingress or Traefik) in front of it.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Code snippet</h4>
+      <pre class="bg-slate-900 text-green-300 p-3 rounded text-xs overflow-x-auto"># The kind port chain for local dev:
+# Browser → localhost:8080
+#   ↓ (Docker port mapping)
+# kind node container:30080
+#   ↓ (kube-proxy iptables rule)
+# Service ClusterIP:80
+#   ↓ (endpoint selection)
+# Pod IP:80 (nginx container)
+
+# Production equivalent uses Ingress:
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  rules:
+    - host: myapp.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nginx-static
+                port:
+                  number: 80</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it in the real world</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Bare-metal K8s clusters</strong> — companies running K8s in their own data centers (without cloud LBs) use NodePort + MetalLB or kube-vip to expose services.</li>
+        <li><strong>On-prem banks and telcos</strong> — regulatory/air-gap requirements often mean NodePort is the main exposure method.</li>
+        <li><strong>Local dev tools (Skaffold, Tilt, DevSpace)</strong> — use NodePort in kind/minikube for fast iteration loops.</li>
+        <li><strong>Cloudflare Tunnel / ngrok integrations</strong> — tunnel to NodePort services for demos and webhooks.</li>
+        <li><strong>Everybody in production</strong> — uses LoadBalancer or Ingress instead, which themselves are often implemented as NodePort under the hood.</li>
+      </ul>`
+  },
+
+  'deep-yaml': {
+    title: '📄 YAML Manifests — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>YAML (YAML Ain't Markup Language) is a human-readable data format. Kubernetes picked it because it supports comments, multi-line strings, and is less verbose than JSON. Every K8s object has the same top-level structure: <code class="bg-slate-100 px-1 rounded">apiVersion</code>, <code class="bg-slate-100 px-1 rounded">kind</code>, <code class="bg-slate-100 px-1 rounded">metadata</code>, and <code class="bg-slate-100 px-1 rounded">spec</code>. "Declarative" means you describe the end state, not the steps. K8s runs a continuous reconciliation loop to make reality match your YAML. Watch out: YAML is whitespace-sensitive and the <code class="bg-slate-100 px-1 rounded">"yes"/"no"/"on"/"off"</code> booleans famously cause bugs.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Code snippet</h4>
+      <pre class="bg-slate-900 text-blue-200 p-3 rounded text-xs overflow-x-auto"># The universal K8s object shape:
+apiVersion: apps/v1     # which API
+kind: Deployment        # what type of object
+metadata:               # identity
+  name: my-app
+  labels:
+    env: prod
+  annotations:
+    owner: team-platform
+spec:                   # desired state
+  # ... object-specific fields
+---                     # YAML doc separator
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app
+spec:
+  # ... another object in the same file</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it in the real world</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Helm</strong> — templates YAML manifests; used by nearly every company deploying K8s apps (Grafana, Prometheus, Airflow all ship Helm charts).</li>
+        <li><strong>Kustomize</strong> — built into kubectl; Google, IBM, and Red Hat use it for env-specific overlays (same base YAML, different patches per environment).</li>
+        <li><strong>Argo CD & Flux</strong> — GitOps tools that continuously sync YAML from Git repos to clusters. Used by Intuit, Tesla, BlackRock.</li>
+        <li><strong>Crossplane</strong> — extends YAML to provision cloud infra (databases, buckets) the same way you provision pods.</li>
+        <li><strong>Every K8s course, book, and tutorial</strong> — YAML is the lingua franca of the entire ecosystem.</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://kubernetes.io/docs/concepts/overview/working-with-objects/" target="_blank" class="text-blue-600 hover:underline">K8s objects reference</a></p>`
+  }
+};
+
+function openModal(id) {
+  const data = modalData[id];
+  if (!data) return;
+  const tpl = document.getElementById('modalTemplate');
+  const clone = tpl.content.cloneNode(true);
+  const modal = clone.querySelector('.fixed');
+  modal.querySelector('.modal-title').textContent = data.title;
+  modal.querySelector('.modal-body').innerHTML = data.body;
+  modal.id = 'active-' + id;
+  document.getElementById('modalContainer').appendChild(modal);
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(el) {
+  if (el) el.remove();
+  document.body.style.overflow = '';
+}
+
+// ESC to close
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const active = document.querySelector('#modalContainer .fixed');
+    if (active) closeModal(active);
+  }
+});
+</script>
+
+</body>
+</html>
