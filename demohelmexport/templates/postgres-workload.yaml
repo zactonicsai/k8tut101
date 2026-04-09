@@ -1,0 +1,35 @@
+{{- if .Values.postgres.enabled }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}-postgres
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "demo.labels" . | nindent 4 }}
+    app: postgres
+  {{- with .Values.postgres.description }}
+  annotations:
+    description: {{ . | quote }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.postgres.replicas }}
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: {{ .Values.postgres.image }}
+        ports:
+        - containerPort: {{ .Values.postgres.port }}
+        env:
+        {{- range $k, $v := .Values.postgres.env }}
+        - name: {{ $k }}
+          value: {{ $v | quote }}
+        {{- end }}
+{{- end }}

@@ -1,0 +1,31 @@
+{{- if .Values.api.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-api
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "demo.labels" . | nindent 4 }}
+    app: api
+  {{- with .Values.api.description }}
+  annotations:
+    description: {{ . | quote }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.api.replicas }}
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+      - name: api
+        image: {{ .Values.api.image }}
+        ports:
+        - containerPort: {{ .Values.api.port }}
+
+{{- end }}

@@ -1,0 +1,15 @@
+Thanks for installing {{ .Chart.Name }}!
+
+Resources deployed from your K8s Studio diagram:
+  - Ingress: app-ingress
+  - Service: web-svc
+  - WebFrontend: web
+  - Service: api-svc
+  - APIServer: api
+  - ConfigMap: api-config
+  - Secret: api-secrets
+  - Service: db-svc
+  - Database: postgres
+  - PersistentVolumeClaim: postgres-pvc
+
+Run: kubectl get all -n {{ .Values.global.namespace }}

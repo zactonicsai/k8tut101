@@ -1,0 +1,23 @@
+# Default values generated from K8s Studio canvas
+global:
+  namespace: default
+
+web:
+  enabled: true
+  image: nginx:1.27-alpine
+  replicas: 2
+  port: 80
+
+api:
+  enabled: true
+  image: node:20-alpine
+  replicas: 2
+  port: 3000
+
+postgres:
+  enabled: true
+  image: postgres:16-alpine
+  replicas: 1
+  port: 5432
+  env:
+    POSTGRES_PASSWORD: "changeme"

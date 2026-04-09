@@ -1,0 +1,31 @@
+{{- if .Values.web.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-web
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "demo.labels" . | nindent 4 }}
+    app: web
+  {{- with .Values.web.description }}
+  annotations:
+    description: {{ . | quote }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.web.replicas }}
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+      - name: web
+        image: {{ .Values.web.image }}
+        ports:
+        - containerPort: {{ .Values.web.port }}
+
+{{- end }}
