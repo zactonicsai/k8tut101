@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>K8s Studio — Visual Kubernetes Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html, body { height: 100%; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  pre, code { font-family: 'Menlo','Monaco','Courier New',monospace; }
+
+  /* Canvas grid background */
+  #canvas {
+    background-color: #0f172a;
+    background-image:
+      linear-gradient(rgba(148,163,184,0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148,163,184,0.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .node {
+    position: absolute;
+    user-select: none;
+    cursor: move;
+    transition: box-shadow .15s, transform .05s;
+  }
+  .node:hover { box-shadow: 0 0 0 2px rgba(59,130,246,0.6), 0 10px 25px rgba(0,0,0,0.35); }
+  .node.selected { box-shadow: 0 0 0 3px #3b82f6, 0 10px 25px rgba(0,0,0,0.5); }
+
+  .palette-item {
+    cursor: grab;
+    transition: transform .1s, background-color .1s;
+  }
+  .palette-item:active { cursor: grabbing; transform: scale(0.97); }
+  .palette-item:hover { background-color: #f1f5f9; }
+
+  /* Connection port */
+  .port {
+    position: absolute;
+    width: 12px; height: 12px;
+    background: #64748b;
+    border: 2px solid #0f172a;
+    border-radius: 999px;
+    cursor: crosshair;
+  }
+  .port:hover { background: #3b82f6; }
+  .port.top { top: -7px; left: 50%; transform: translateX(-50%); }
+  .port.bottom { bottom: -7px; left: 50%; transform: translateX(-50%); }
+  .port.left { left: -7px; top: 50%; transform: translateY(-50%); }
+  .port.right { right: -7px; top: 50%; transform: translateY(-50%); }
+
+  #connections { position: absolute; inset: 0; pointer-events: none; width:100%; height:100%; }
+  #connections path { stroke: #60a5fa; stroke-width: 2; fill: none; stroke-dasharray: 6 4; animation: dash 1s linear infinite; pointer-events: stroke; cursor: pointer; }
+  @keyframes dash { to { stroke-dashoffset: -20; } }
+  #connections path:hover { stroke: #f87171; stroke-width: 3; }
+
+  .scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  .scrollbar-dark::-webkit-scrollbar-thumb { background: #334155; }
+
+  .modal-backdrop { background: rgba(15,23,42,0.75); backdrop-filter: blur(4px); }
+
+  .toast { animation: slide-in .25s ease-out; }
+  @keyframes slide-in { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  .tab-btn.active { background:#1e293b; color:#60a5fa; border-color:#60a5fa; }
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800 overflow-hidden">
+
+<!-- ============================ TOP BAR ============================ -->
+<header class="h-14 bg-slate-900 border-b border-slate-700 flex items-center justify-between px-4 text-white">
+  <div class="flex items-center gap-3">
+    <div class="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center font-bold">⎈</div>
+    <div>
+      <div class="font-semibold leading-tight">K8s Studio</div>
+      <div class="text-xs text-slate-400 leading-tight">Visual cluster designer for kind &amp; Docker</div>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-2">
+    <button onclick="openHelmModal()" class="px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-sm font-medium flex items-center gap-1">⎈ Helm Templates</button>
+    <button onclick="openExampleModal()" class="px-3 py-1.5 rounded-md bg-purple-600 hover:bg-purple-500 text-sm font-medium flex items-center gap-1">📦 Example Apps</button>
+    <button onclick="openYamlModal()" class="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-sm font-medium flex items-center gap-1">⬇ Export YAML</button>
+    <button onclick="openDeployModal()" class="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-500 text-sm font-medium">🚀 Deploy to kind</button>
+    <button onclick="clearCanvas()" class="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-red-600 text-sm font-medium">🗑 Clear</button>
+    <button onclick="openHelpModal()" class="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-sm font-medium">? Help</button>
+  </div>
+</header>
+
+<!-- ============================ MAIN LAYOUT ============================ -->
+<div class="flex" style="height: calc(100vh - 56px);">
+
+  <!-- ===================== LEFT: PALETTE ===================== -->
+  <aside class="w-64 bg-white border-r border-slate-200 overflow-y-auto scrollbar">
+    <div class="p-3 border-b border-slate-200 bg-slate-50">
+      <div class="text-xs font-bold text-slate-500 uppercase tracking-wide">Component Palette</div>
+      <div class="text-[11px] text-slate-500 mt-1">Drag items onto the canvas</div>
+    </div>
+
+    <div id="palette"></div>
+
+    <div class="p-3 border-t border-slate-200 bg-slate-50 text-[11px] text-slate-500">
+      💡 Tip: drag node to move it. Click a port (small circle) then click another port to connect.
+    </div>
+  </aside>
+
+  <!-- ===================== CENTER: CANVAS ===================== -->
+  <main class="flex-1 relative overflow-hidden">
+    <div id="canvas" class="absolute inset-0 overflow-auto scrollbar scrollbar-dark">
+      <div id="world" style="position:relative; width: 3000px; height: 2000px;">
+        <svg id="connections" viewBox="0 0 3000 2000" preserveAspectRatio="none"></svg>
+        <!-- Nodes inserted here -->
+      </div>
+    </div>
+
+    <!-- Empty state overlay -->
+    <div id="emptyState" class="absolute inset-0 flex items-center justify-center pointer-events-none">
+      <div class="text-center text-slate-400">
+        <div class="text-6xl mb-3">⎈</div>
+        <div class="text-xl font-semibold text-slate-300">Empty canvas</div>
+        <div class="text-sm mt-1">Drag a component from the left, or load a Helm template / example app from the top bar.</div>
+      </div>
+    </div>
+
+    <!-- Canvas status bar -->
+    <div class="absolute bottom-3 left-3 bg-slate-900/90 text-slate-300 text-xs px-3 py-1.5 rounded-md border border-slate-700 flex gap-4">
+      <span>Nodes: <span id="nodeCount" class="text-white font-semibold">0</span></span>
+      <span>Connections: <span id="connCount" class="text-white font-semibold">0</span></span>
+      <span>Namespace: <span id="nsLabel" class="text-emerald-400 font-semibold">default</span></span>
+    </div>
+  </main>
+
+  <!-- ===================== RIGHT: INSPECTOR ===================== -->
+  <aside class="w-80 bg-white border-l border-slate-200 flex flex-col">
+    <div class="p-3 border-b border-slate-200 bg-slate-50">
+      <div class="text-xs font-bold text-slate-500 uppercase tracking-wide">Inspector</div>
+    </div>
+    <div id="inspector" class="flex-1 overflow-y-auto scrollbar p-4 text-sm">
+      <div class="text-slate-400 text-center mt-8 text-xs">
+        Select a node on the canvas to edit its properties.
+      </div>
+    </div>
+
+    <!-- Cluster settings footer -->
+    <div class="border-t border-slate-200 p-3 bg-slate-50">
+      <div class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Cluster Settings</div>
+      <label class="block text-[11px] text-slate-600">Cluster name</label>
+      <input id="clusterName" value="demo" class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" />
+      <label class="block text-[11px] text-slate-600">Namespace</label>
+      <input id="namespace" value="default" class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" oninput="document.getElementById('nsLabel').textContent=this.value||'default'" />
+      <label class="block text-[11px] text-slate-600">Worker nodes</label>
+      <input id="workerCount" type="number" min="0" max="10" value="2" class="w-full text-xs border border-slate-300 rounded px-2 py-1" />
+    </div>
+  </aside>
+</div>
+
+<!-- ============================ MODAL CONTAINER ============================ -->
+<div id="modalRoot"></div>
+
+<!-- ============================ TOAST CONTAINER ============================ -->
+<div id="toastRoot" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+
+<script>
+/* =======================================================================
+   K8s STUDIO — client-side only visual designer
+   ======================================================================= */
+
+// -------------------------- COMPONENT DEFINITIONS --------------------------
+const COMPONENT_GROUPS = [
+  {
+    name: 'Workloads',
+    color: 'blue',
+    items: [
+      { type: 'Pod',         icon: '⬢', color: 'bg-blue-500',    desc: 'Smallest deployable unit' },
+      { type: 'Deployment',  icon: '▦', color: 'bg-blue-600',    desc: 'Stateless replicated workload' },
+      { type: 'StatefulSet', icon: '▤', color: 'bg-indigo-600',  desc: 'Ordered, stateful pods' },
+      { type: 'DaemonSet',   icon: '▥', color: 'bg-indigo-500',  desc: 'Runs one pod per node' },
+      { type: 'Job',         icon: '◆', color: 'bg-violet-600',  desc: 'Run-to-completion task' },
+      { type: 'CronJob',     icon: '◷', color: 'bg-violet-500',  desc: 'Scheduled job' },
+    ],
+  },
+  {
+    name: 'Networking',
+    color: 'emerald',
+    items: [
+      { type: 'Service',       icon: '⇄', color: 'bg-emerald-600', desc: 'Stable network endpoint' },
+      { type: 'Ingress',       icon: '⇥', color: 'bg-emerald-500', desc: 'External HTTP(S) entry' },
+      { type: 'Egress',        icon: '⇤', color: 'bg-teal-500',    desc: 'Outbound traffic rule' },
+      { type: 'NetworkPolicy', icon: '⛨', color: 'bg-teal-600',    desc: 'Pod-level firewall' },
+    ],
+  },
+  {
+    name: 'Config & Storage',
+    color: 'amber',
+    items: [
+      { type: 'ConfigMap',             icon: '⚙', color: 'bg-amber-500', desc: 'Non-secret key/value data' },
+      { type: 'Secret',                icon: '🔒', color: 'bg-amber-600', desc: 'Sensitive key/value data' },
+      { type: 'PersistentVolumeClaim', icon: '💾', color: 'bg-orange-500', desc: 'Storage request' },
+    ],
+  },
+  {
+    name: 'App Components',
+    color: 'rose',
+    items: [
+      { type: 'WebFrontend',  icon: '🌐', color: 'bg-rose-500',  desc: 'nginx / React / static UI', preset: 'web' },
+      { type: 'APIServer',    icon: '🔌', color: 'bg-pink-500',  desc: 'REST / GraphQL API', preset: 'api' },
+      { type: 'AppServer',    icon: '🖥',  color: 'bg-fuchsia-500', desc: 'Business logic worker', preset: 'app' },
+      { type: 'Database',     icon: '🗄', color: 'bg-purple-600', desc: 'PostgreSQL / MySQL', preset: 'db' },
+      { type: 'DocStore',     icon: '📄', color: 'bg-purple-500', desc: 'MongoDB / CouchDB', preset: 'doc' },
+      { type: 'Cache',        icon: '⚡', color: 'bg-red-500',    desc: 'Redis / Memcached', preset: 'cache' },
+      { type: 'MessageQueue', icon: '✉', color: 'bg-red-600',    desc: 'RabbitMQ / Kafka', preset: 'mq' },
+    ],
+  },
+];
+
+// Presets map app components to concrete container images and ports
+const APP_PRESETS = {
+  web:   { image: 'nginx:1.27-alpine',           port: 80,    replicas: 2 },
+  api:   { image: 'node:20-alpine',              port: 3000,  replicas: 2, command: ['node','server.js'] },
+  app:   { image: 'python:3.12-slim',            port: 8000,  replicas: 2 },
+  db:    { image: 'postgres:16-alpine',          port: 5432,  replicas: 1, env: { POSTGRES_PASSWORD: 'changeme' } },
+  doc:   { image: 'mongo:7',                     port: 27017, replicas: 1 },
+  cache: { image: 'redis:7-alpine',              port: 6379,  replicas: 1 },
+  mq:    { image: 'rabbitmq:3-management-alpine',port: 5672,  replicas: 1 },
+};
+
+// -------------------------- STATE --------------------------
+const state = {
+  nodes: {},          // id -> { id, type, x, y, label, props, el }
+  connections: [],    // { id, from, to }
+  selected: null,
+  nextId: 1,
+  pendingPort: null,  // for click-to-connect
+};
+
+// -------------------------- PALETTE RENDERING --------------------------
+function renderPalette() {
+  const paletteEl = document.getElementById('palette');
+  paletteEl.innerHTML = COMPONENT_GROUPS.map(group => `
+    <div class="border-b border-slate-200">
+      <div class="px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-${group.color}-700 bg-${group.color}-50">${group.name}</div>
+      <div class="p-2 space-y-1">
+        ${group.items.map(item => `
+          <div class="palette-item flex items-center gap-2 px-2 py-1.5 rounded border border-slate-200 bg-white"
+               draggable="true"
+               data-type="${item.type}"
+               ${item.preset ? `data-preset="${item.preset}"` : ''}
+               title="${item.desc}">
+            <div class="w-7 h-7 rounded ${item.color} text-white flex items-center justify-center text-sm shrink-0">${item.icon}</div>
+            <div class="min-w-0">
+              <div class="text-xs font-semibold text-slate-800 truncate">${item.type}</div>
+              <div class="text-[10px] text-slate-500 truncate">${item.desc}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  // Wire drag events
+  paletteEl.querySelectorAll('.palette-item').forEach(el => {
+    el.addEventListener('dragstart', ev => {
+      ev.dataTransfer.setData('text/plain', JSON.stringify({
+        type: el.dataset.type,
+        preset: el.dataset.preset || null,
+      }));
+      ev.dataTransfer.effectAllowed = 'copy';
+    });
+  });
+}
+
+// -------------------------- CANVAS DROP TARGET --------------------------
+const canvas = document.getElementById('canvas');
+const world = document.getElementById('world');
+
+canvas.addEventListener('dragover', ev => { ev.preventDefault(); ev.dataTransfer.dropEffect = 'copy'; });
+canvas.addEventListener('drop', ev => {
+  ev.preventDefault();
+  let data;
+  try { data = JSON.parse(ev.dataTransfer.getData('text/plain')); } catch { return; }
+  const rect = world.getBoundingClientRect();
+  const x = ev.clientX - rect.left - 80;
+  const y = ev.clientY - rect.top - 30;
+  addNode(data.type, x, y, data.preset);
+});
+
+// -------------------------- NODE FACTORY --------------------------
+function findComponentMeta(type) {
+  for (const g of COMPONENT_GROUPS) {
+    const it = g.items.find(i => i.type === type);
+    if (it) return it;
+  }
+  return { type, icon: '▢', color: 'bg-slate-500', desc: '' };
+}
+
+function addNode(type, x, y, preset, overrides = {}) {
+  const id = 'n' + (state.nextId++);
+  const meta = findComponentMeta(type);
+  const defaultLabel = overrides.label || (type.toLowerCase() + '-' + (state.nextId - 1));
+
+  let props = {
+    name: defaultLabel,
+    namespace: document.getElementById('namespace').value || 'default',
+    replicas: 1,
+    image: '',
+    port: null,
+    env: {},
+    ...overrides.props,
+  };
+  if (preset && APP_PRESETS[preset]) {
+    Object.assign(props, APP_PRESETS[preset]);
+    props.name = defaultLabel;
+  }
+
+  const node = { id, type, x: Math.max(10, x), y: Math.max(10, y), label: defaultLabel, props, preset };
+  state.nodes[id] = node;
+
+  const el = document.createElement('div');
+  el.className = 'node rounded-lg shadow-lg';
+  el.style.left = node.x + 'px';
+  el.style.top  = node.y + 'px';
+  el.style.width = '160px';
+  el.dataset.id = id;
+  el.innerHTML = `
+    <div class="${meta.color} text-white rounded-t-lg px-2 py-1.5 flex items-center gap-1.5 text-xs font-semibold">
+      <span class="text-base leading-none">${meta.icon}</span>
+      <span class="truncate flex-1">${type}</span>
+    </div>
+    <div class="bg-white rounded-b-lg px-2 py-2 border border-t-0 border-slate-300">
+      <div class="text-[11px] font-mono text-slate-700 truncate node-label">${node.label}</div>
+      <div class="text-[10px] text-slate-500 truncate node-sub">${props.image || meta.desc}</div>
+    </div>
+    <div class="port top"    data-port="top"></div>
+    <div class="port bottom" data-port="bottom"></div>
+    <div class="port left"   data-port="left"></div>
+    <div class="port right"  data-port="right"></div>
+  `;
+  world.appendChild(el);
+  node.el = el;
+
+  makeDraggable(el, node);
+  el.addEventListener('click', ev => { ev.stopPropagation(); selectNode(id); });
+  el.querySelectorAll('.port').forEach(p => {
+    p.addEventListener('click', ev => { ev.stopPropagation(); handlePortClick(id, p.dataset.port); });
+  });
+
+  updateCounts();
+  updateEmptyState();
+  selectNode(id);
+  return node;
+}
+
+// -------------------------- DRAGGING NODES --------------------------
+function makeDraggable(el, node) {
+  let startX, startY, origX, origY, dragging = false;
+  el.addEventListener('mousedown', ev => {
+    if (ev.target.classList.contains('port')) return;
+    dragging = true;
+    startX = ev.clientX; startY = ev.clientY;
+    origX = node.x; origY = node.y;
+    ev.preventDefault();
+  });
+  document.addEventListener('mousemove', ev => {
+    if (!dragging) return;
+    node.x = origX + (ev.clientX - startX);
+    node.y = origY + (ev.clientY - startY);
+    el.style.left = node.x + 'px';
+    el.style.top  = node.y + 'px';
+    redrawConnections();
+  });
+  document.addEventListener('mouseup', () => { dragging = false; });
+}
+
+// -------------------------- CONNECTIONS --------------------------
+function handlePortClick(nodeId, portSide) {
+  if (!state.pendingPort) {
+    state.pendingPort = { nodeId, portSide };
+    toast('Click another port to connect', 'info');
+  } else {
+    if (state.pendingPort.nodeId !== nodeId) {
+      addConnection(state.pendingPort.nodeId, nodeId);
+    }
+    state.pendingPort = null;
+  }
+}
+
+function addConnection(fromId, toId) {
+  const exists = state.connections.some(c =>
+    (c.from === fromId && c.to === toId) || (c.from === toId && c.to === fromId));
+  if (exists) return;
+  state.connections.push({ id: 'c' + (state.nextId++), from: fromId, to: toId });
+  redrawConnections();
+  updateCounts();
+}
+
+function portCenter(node, side) {
+  const w = 160, h = 56;
+  switch (side) {
+    case 'top':    return { x: node.x + w/2, y: node.y };
+    case 'bottom': return { x: node.x + w/2, y: node.y + h };
+    case 'left':   return { x: node.x,       y: node.y + h/2 };
+    case 'right':  return { x: node.x + w,   y: node.y + h/2 };
+  }
+  return { x: node.x + w/2, y: node.y + h/2 };
+}
+
+function nearestSides(a, b) {
+  // Choose closest side pair
+  const sides = ['top','bottom','left','right'];
+  let best = { d: Infinity, s1: 'right', s2: 'left' };
+  sides.forEach(s1 => sides.forEach(s2 => {
+    const p1 = portCenter(a, s1), p2 = portCenter(b, s2);
+    const d = (p1.x-p2.x)**2 + (p1.y-p2.y)**2;
+    if (d < best.d) best = { d, s1, s2, p1, p2 };
+  }));
+  return best;
+}
+
+function redrawConnections() {
+  const svg = document.getElementById('connections');
+  svg.innerHTML = '';
+  state.connections.forEach(conn => {
+    const a = state.nodes[conn.from], b = state.nodes[conn.to];
+    if (!a || !b) return;
+    const { p1, p2 } = nearestSides(a, b);
+    const mx = (p1.x + p2.x) / 2;
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', `M ${p1.x} ${p1.y} C ${mx} ${p1.y}, ${mx} ${p2.y}, ${p2.x} ${p2.y}`);
+    path.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      if (confirm('Delete this connection?')) {
+        state.connections = state.connections.filter(c => c.id !== conn.id);
+        redrawConnections();
+        updateCounts();
+      }
+    });
+    svg.appendChild(path);
+  });
+}
+
+// -------------------------- SELECTION + INSPECTOR --------------------------
+function selectNode(id) {
+  state.selected = id;
+  Object.values(state.nodes).forEach(n => n.el.classList.toggle('selected', n.id === id));
+  renderInspector();
+}
+
+canvas.addEventListener('click', () => { selectNode(null); });
+
+function renderInspector() {
+  const box = document.getElementById('inspector');
+  if (!state.selected) {
+    box.innerHTML = `<div class="text-slate-400 text-center mt-8 text-xs">Select a node on the canvas to edit its properties.</div>`;
+    return;
+  }
+  const n = state.nodes[state.selected];
+  if (!n) return;
+  const envLines = Object.entries(n.props.env || {}).map(([k,v]) => `${k}=${v}`).join('\n');
+  box.innerHTML = `
+    <div class="mb-3">
+      <div class="text-[11px] uppercase font-bold text-slate-500">Kind</div>
+      <div class="text-sm font-semibold">${n.type}</div>
+    </div>
+    <label class="block text-[11px] text-slate-600">Name</label>
+    <input class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" value="${n.props.name || ''}" oninput="updateProp('name', this.value)" />
+
+    <label class="block text-[11px] text-slate-600">Namespace</label>
+    <input class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" value="${n.props.namespace || 'default'}" oninput="updateProp('namespace', this.value)" />
+
+    ${['Deployment','StatefulSet','DaemonSet','Pod','WebFrontend','APIServer','AppServer','Database','DocStore','Cache','MessageQueue'].includes(n.type) ? `
+      <label class="block text-[11px] text-slate-600">Image</label>
+      <input class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" value="${n.props.image || ''}" oninput="updateProp('image', this.value)" />
+
+      <label class="block text-[11px] text-slate-600">Container Port</label>
+      <input type="number" class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" value="${n.props.port || ''}" oninput="updateProp('port', parseInt(this.value)||null)" />
+
+      <label class="block text-[11px] text-slate-600">Replicas</label>
+      <input type="number" min="0" class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" value="${n.props.replicas || 1}" oninput="updateProp('replicas', parseInt(this.value)||1)" />
+
+      <label class="block text-[11px] text-slate-600">Environment (KEY=value per line)</label>
+      <textarea rows="3" class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2 font-mono" oninput="updateEnv(this.value)">${envLines}</textarea>
+    ` : ''}
+
+    ${n.type === 'Service' ? `
+      <label class="block text-[11px] text-slate-600">Service Type</label>
+      <select class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" onchange="updateProp('serviceType', this.value)">
+        ${['ClusterIP','NodePort','LoadBalancer'].map(t => `<option ${n.props.serviceType===t?'selected':''}>${t}</option>`).join('')}
+      </select>
+      <label class="block text-[11px] text-slate-600">Port</label>
+      <input type="number" class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" value="${n.props.port || 80}" oninput="updateProp('port', parseInt(this.value)||80)" />
+    ` : ''}
+
+    ${n.type === 'Ingress' ? `
+      <label class="block text-[11px] text-slate-600">Host</label>
+      <input class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" value="${n.props.host || 'demo.local'}" oninput="updateProp('host', this.value)" />
+      <label class="block text-[11px] text-slate-600">Path</label>
+      <input class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" value="${n.props.path || '/'}" oninput="updateProp('path', this.value)" />
+    ` : ''}
+
+    ${n.type === 'ConfigMap' || n.type === 'Secret' ? `
+      <label class="block text-[11px] text-slate-600">Data (KEY=value per line)</label>
+      <textarea rows="4" class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2 font-mono" oninput="updateData(this.value)">${Object.entries(n.props.data||{}).map(([k,v])=>`${k}=${v}`).join('\n')}</textarea>
+    ` : ''}
+
+    <div class="flex gap-2 mt-3">
+      <button onclick="duplicateNode()" class="flex-1 text-xs bg-slate-200 hover:bg-slate-300 rounded py-1.5">Duplicate</button>
+      <button onclick="deleteNode()" class="flex-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded py-1.5">Delete</button>
+    </div>
+  `;
+}
+
+function updateProp(key, val) {
+  const n = state.nodes[state.selected]; if (!n) return;
+  n.props[key] = val;
+  if (key === 'name') {
+    n.label = val;
+    n.el.querySelector('.node-label').textContent = val;
+  }
+  if (key === 'image') {
+    n.el.querySelector('.node-sub').textContent = val;
+  }
+}
+function updateEnv(text) {
+  const n = state.nodes[state.selected]; if (!n) return;
+  const env = {};
+  text.split('\n').forEach(line => {
+    const [k, ...rest] = line.split('=');
+    if (k && k.trim()) env[k.trim()] = rest.join('=').trim();
+  });
+  n.props.env = env;
+}
+function updateData(text) {
+  const n = state.nodes[state.selected]; if (!n) return;
+  const data = {};
+  text.split('\n').forEach(line => {
+    const [k, ...rest] = line.split('=');
+    if (k && k.trim()) data[k.trim()] = rest.join('=').trim();
+  });
+  n.props.data = data;
+}
+function duplicateNode() {
+  const n = state.nodes[state.selected]; if (!n) return;
+  addNode(n.type, n.x + 30, n.y + 30, n.preset, {
+    label: n.label + '-copy',
+    props: JSON.parse(JSON.stringify(n.props)),
+  });
+}
+function deleteNode() {
+  const id = state.selected; if (!id) return;
+  const n = state.nodes[id];
+  n.el.remove();
+  delete state.nodes[id];
+  state.connections = state.connections.filter(c => c.from !== id && c.to !== id);
+  state.selected = null;
+  redrawConnections();
+  updateCounts();
+  updateEmptyState();
+  renderInspector();
+}
+
+// -------------------------- HOUSEKEEPING --------------------------
+function updateCounts() {
+  document.getElementById('nodeCount').textContent = Object.keys(state.nodes).length;
+  document.getElementById('connCount').textContent = state.connections.length;
+}
+function updateEmptyState() {
+  document.getElementById('emptyState').style.display =
+    Object.keys(state.nodes).length === 0 ? 'flex' : 'none';
+}
+function clearCanvas() {
+  if (Object.keys(state.nodes).length && !confirm('Clear the entire canvas?')) return;
+  Object.values(state.nodes).forEach(n => n.el.remove());
+  state.nodes = {};
+  state.connections = [];
+  state.selected = null;
+  redrawConnections();
+  updateCounts();
+  updateEmptyState();
+  renderInspector();
+  toast('Canvas cleared', 'info');
+}
+
+// -------------------------- YAML GENERATION --------------------------
+function yamlEscape(s) {
+  if (s === null || s === undefined) return '""';
+  if (typeof s === 'number') return String(s);
+  if (/^[a-zA-Z0-9._\/-]+$/.test(s)) return s;
+  return `"${String(s).replace(/"/g,'\\"')}"`;
+}
+
+function genContainer(n) {
+  const p = n.props;
+  const lines = [
+    `      - name: ${yamlEscape(p.name || 'app')}`,
+    `        image: ${yamlEscape(p.image || 'nginx:latest')}`,
+  ];
+  if (p.port) {
+    lines.push(`        ports:`);
+    lines.push(`        - containerPort: ${p.port}`);
+  }
+  if (p.env && Object.keys(p.env).length) {
+    lines.push(`        env:`);
+    Object.entries(p.env).forEach(([k,v]) => {
+      lines.push(`        - name: ${yamlEscape(k)}`);
+      lines.push(`          value: ${yamlEscape(v)}`);
+    });
+  }
+  return lines.join('\n');
+}
+
+function genWorkloadYaml(n, kind) {
+  const p = n.props;
+  const k = kind || n.type;
+  // Normalize app-component types into Deployments
+  const realKind = ['WebFrontend','APIServer','AppServer','DocStore','Cache','MessageQueue'].includes(k)
+    ? 'Deployment'
+    : k === 'Database' ? 'StatefulSet' : k;
+  return `---
+apiVersion: ${realKind === 'Pod' ? 'v1' : 'apps/v1'}
+kind: ${realKind}
+metadata:
+  name: ${yamlEscape(p.name)}
+  namespace: ${yamlEscape(p.namespace || 'default')}
+  labels:
+    app: ${yamlEscape(p.name)}
+spec:
+${realKind === 'Pod' ? '' : `  replicas: ${p.replicas || 1}
+  selector:
+    matchLabels:
+      app: ${yamlEscape(p.name)}
+  template:
+    metadata:
+      labels:
+        app: ${yamlEscape(p.name)}
+    spec:`}
+${realKind === 'Pod' ? `  containers:\n${genContainer(n).replace(/^ {6}/gm,'  ').replace(/^ {8}/gm,'    ')}` : `      containers:\n${genContainer(n)}`}`;
+}
+
+function genServiceYaml(n) {
+  const p = n.props;
+  // Find a connected workload to select
+  const connected = state.connections
+    .filter(c => c.from === n.id || c.to === n.id)
+    .map(c => state.nodes[c.from === n.id ? c.to : c.from])
+    .find(x => x && !['Service','Ingress','ConfigMap','Secret','PersistentVolumeClaim','NetworkPolicy','Egress'].includes(x.type));
+  const selector = connected ? connected.props.name : p.name;
+  const port = p.port || 80;
+  return `---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${yamlEscape(p.name)}
+  namespace: ${yamlEscape(p.namespace || 'default')}
+spec:
+  type: ${p.serviceType || 'ClusterIP'}
+  selector:
+    app: ${yamlEscape(selector)}
+  ports:
+  - port: ${port}
+    targetPort: ${connected?.props?.port || port}
+    protocol: TCP`;
+}
+
+function genIngressYaml(n) {
+  const p = n.props;
+  const svc = state.connections
+    .filter(c => c.from === n.id || c.to === n.id)
+    .map(c => state.nodes[c.from === n.id ? c.to : c.from])
+    .find(x => x && x.type === 'Service');
+  return `---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ${yamlEscape(p.name)}
+  namespace: ${yamlEscape(p.namespace || 'default')}
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: ${yamlEscape(p.host || 'demo.local')}
+    http:
+      paths:
+      - path: ${p.path || '/'}
+        pathType: Prefix
+        backend:
+          service:
+            name: ${yamlEscape(svc?.props?.name || 'my-service')}
+            port:
+              number: ${svc?.props?.port || 80}`;
+}
+
+function genConfigMapYaml(n) {
+  const p = n.props;
+  const data = p.data || { 'key': 'value' };
+  const kind = n.type === 'Secret' ? 'Secret' : 'ConfigMap';
+  const dataField = kind === 'Secret' ? 'stringData' : 'data';
+  const lines = Object.entries(data).map(([k,v]) => `  ${yamlEscape(k)}: ${yamlEscape(v)}`).join('\n');
+  return `---
+apiVersion: v1
+kind: ${kind}
+metadata:
+  name: ${yamlEscape(p.name)}
+  namespace: ${yamlEscape(p.namespace || 'default')}
+${dataField}:
+${lines}`;
+}
+
+function genPVCYaml(n) {
+  const p = n.props;
+  return `---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ${yamlEscape(p.name)}
+  namespace: ${yamlEscape(p.namespace || 'default')}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: ${p.size || '1Gi'}`;
+}
+
+function genNetworkPolicyYaml(n) {
+  const p = n.props;
+  return `---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ${yamlEscape(p.name)}
+  namespace: ${yamlEscape(p.namespace || 'default')}
+spec:
+  podSelector:
+    matchLabels:
+      app: ${yamlEscape(p.name)}
+  policyTypes: [Ingress, Egress]
+  ingress:
+  - from:
+    - podSelector: {}
+  egress:
+  - to:
+    - podSelector: {}`;
+}
+
+function genKindConfigYaml() {
+  const name = document.getElementById('clusterName').value || 'demo';
+  const workers = parseInt(document.getElementById('workerCount').value) || 0;
+  const workerLines = Array.from({length: workers}, () => '  - role: worker').join('\n');
+  return `---
+# kind-config.yaml — create with: kind create cluster --name ${name} --config kind-config.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: ${name}
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 8080
+        protocol: TCP
+      - containerPort: 30443
+        hostPort: 8443
+        protocol: TCP
+${workerLines}`;
+}
+
+function generateYaml(includeKindConfig = true) {
+  const parts = [];
+  if (includeKindConfig) parts.push(genKindConfigYaml());
+
+  Object.values(state.nodes).forEach(n => {
+    switch (n.type) {
+      case 'Pod':
+      case 'Deployment':
+      case 'StatefulSet':
+      case 'DaemonSet':
+      case 'WebFrontend':
+      case 'APIServer':
+      case 'AppServer':
+      case 'Database':
+      case 'DocStore':
+      case 'Cache':
+      case 'MessageQueue':
+        parts.push(genWorkloadYaml(n));
+        break;
+      case 'Service':
+        parts.push(genServiceYaml(n));
+        break;
+      case 'Ingress':
+        parts.push(genIngressYaml(n));
+        break;
+      case 'ConfigMap':
+      case 'Secret':
+        parts.push(genConfigMapYaml(n));
+        break;
+      case 'PersistentVolumeClaim':
+        parts.push(genPVCYaml(n));
+        break;
+      case 'NetworkPolicy':
+      case 'Egress':
+        parts.push(genNetworkPolicyYaml(n));
+        break;
+    }
+  });
+
+  return parts.join('\n') + '\n';
+}
+
+// -------------------------- MODALS --------------------------
+function showModal(title, bodyHtml, wide=false) {
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+    <div class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4" onclick="if(event.target===this)closeModal()">
+      <div class="bg-white rounded-xl shadow-2xl ${wide?'max-w-5xl':'max-w-2xl'} w-full max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between px-5 py-3 border-b border-slate-200">
+          <h3 class="text-lg font-semibold">${title}</h3>
+          <button onclick="closeModal()" class="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
+        </div>
+        <div class="p-5 overflow-y-auto scrollbar">${bodyHtml}</div>
+      </div>
+    </div>
+  `;
+}
+function closeModal() { document.getElementById('modalRoot').innerHTML = ''; }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ----------- YAML export modal -----------
+function openYamlModal() {
+  const yaml = generateYaml(true);
+  showModal('Export Kubernetes YAML', `
+    <div class="flex gap-2 mb-3">
+      <button onclick="copyYaml()" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">📋 Copy to clipboard</button>
+      <button onclick="downloadYaml()" class="px-3 py-1.5 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-500">⬇ Download manifest.yaml</button>
+    </div>
+    <p class="text-xs text-slate-500 mb-2">This manifest includes a <code>kind-config.yaml</code> header and all resources on your canvas. Apply it with <code class="bg-slate-100 px-1">kubectl apply -f manifest.yaml</code> after creating the cluster.</p>
+    <textarea id="yamlOut" readonly class="w-full h-96 text-xs font-mono border border-slate-300 rounded p-3 bg-slate-900 text-green-300 scrollbar scrollbar-dark">${yaml.replace(/</g,'&lt;')}</textarea>
+  `, true);
+}
+function copyYaml() {
+  const t = document.getElementById('yamlOut');
+  t.select(); document.execCommand('copy');
+  toast('YAML copied to clipboard', 'success');
+}
+function downloadYaml() {
+  const yaml = document.getElementById('yamlOut').value;
+  const blob = new Blob([yaml], { type: 'text/yaml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'manifest.yaml'; a.click();
+  URL.revokeObjectURL(url);
+  toast('manifest.yaml downloaded', 'success');
+}
+
+// ----------- Deploy modal (simulated) -----------
+function openDeployModal() {
+  const name = document.getElementById('clusterName').value || 'demo';
+  showModal('🚀 Deploy to kind cluster', `
+    <p class="text-sm text-slate-600 mb-3">Run these commands in your terminal. K8s Studio runs entirely in your browser — it doesn't execute anything on your machine.</p>
+    <pre class="bg-slate-900 text-green-300 p-4 rounded-lg text-xs overflow-x-auto"># 1. Export the manifest from this dashboard (Export YAML button)
+
+# 2. Create the kind cluster
+kind create cluster --name ${name} --config kind-config.yaml
+
+# 3. Verify nodes
+kubectl cluster-info --context kind-${name}
+kubectl get nodes
+
+# 4. (Optional) Install nginx ingress controller
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+kubectl wait --namespace ingress-nginx \\
+  --for=condition=ready pod \\
+  --selector=app.kubernetes.io/component=controller \\
+  --timeout=180s
+
+# 5. Apply your manifest
+kubectl apply -f manifest.yaml
+
+# 6. Watch pods come up
+kubectl get pods -w
+
+# 7. Tear down
+kind delete cluster --name ${name}</pre>
+    <div class="mt-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r text-xs text-blue-900">
+      💡 On a real workflow, you'd wire this to <code>kubectl</code> via a backend, or use <code>argocd</code> / <code>flux</code> for GitOps.
+    </div>
+  `, true);
+}
+
+// ----------- Help modal -----------
+function openHelpModal() {
+  showModal('K8s Studio — How to use', `
+    <div class="space-y-3 text-sm text-slate-700">
+      <div>
+        <div class="font-semibold text-slate-900">1. Drag components onto the canvas</div>
+        <p class="text-xs text-slate-600">Pick from Workloads (Pod/Deployment/StatefulSet), Networking (Service/Ingress/NetworkPolicy), Config (ConfigMap/Secret/PVC), or pre-wired App Components (Web, API, DB, Cache, etc.).</p>
+      </div>
+      <div>
+        <div class="font-semibold text-slate-900">2. Move &amp; arrange</div>
+        <p class="text-xs text-slate-600">Click and drag the header of any node to reposition it. Click a node to select it and edit properties in the right-hand inspector.</p>
+      </div>
+      <div>
+        <div class="font-semibold text-slate-900">3. Connect nodes</div>
+        <p class="text-xs text-slate-600">Click a small circular port on a node's edge, then click a port on another node. The dashed line represents the relationship (e.g. Service → Deployment selector, Ingress → Service).</p>
+      </div>
+      <div>
+        <div class="font-semibold text-slate-900">4. Load a starter</div>
+        <p class="text-xs text-slate-600"><strong>⎈ Helm Templates</strong> drops in canonical charts (WordPress, Prometheus, etc.). <strong>📦 Example Apps</strong> loads fully-wired reference architectures.</p>
+      </div>
+      <div>
+        <div class="font-semibold text-slate-900">5. Export &amp; deploy</div>
+        <p class="text-xs text-slate-600">Click <strong>⬇ Export YAML</strong> to generate a kind-compatible manifest (includes <code>kind-config.yaml</code>). Apply it with <code>kubectl apply -f manifest.yaml</code>.</p>
+      </div>
+      <div class="mt-3 p-3 bg-amber-50 border-l-4 border-amber-400 rounded-r text-xs text-amber-900">
+        This dashboard is a <strong>visual designer</strong> — no cluster calls are made from the browser. Generated YAML is ready to apply to a real kind cluster on Docker.
+      </div>
+    </div>
+  `);
+}
+
+// ----------- Helm template modal -----------
+const HELM_TEMPLATES = [
+  {
+    id: 'wordpress',
+    name: 'WordPress + MariaDB',
+    repo: 'bitnami/wordpress',
+    desc: 'Classic CMS with a MariaDB backend. The "hello world" of Helm charts.',
+    nodes: [
+      { type: 'WebFrontend',  x: 180, y: 160, label: 'wordpress',    preset: 'web', props: { image: 'bitnami/wordpress:6.6', port: 8080, replicas: 2 } },
+      { type: 'Service',      x: 420, y: 160, label: 'wordpress-svc', props: { serviceType: 'ClusterIP', port: 80 } },
+      { type: 'Ingress',      x: 660, y: 160, label: 'wordpress-ing', props: { host: 'wordpress.local', path: '/' } },
+      { type: 'Database',     x: 180, y: 340, label: 'mariadb',      preset: 'db',  props: { image: 'bitnami/mariadb:11', port: 3306, replicas: 1, env: { MARIADB_ROOT_PASSWORD: 'changeme', MARIADB_DATABASE: 'wordpress' } } },
+      { type: 'Service',      x: 420, y: 340, label: 'mariadb-svc',   props: { serviceType: 'ClusterIP', port: 3306 } },
+      { type: 'Secret',       x: 660, y: 340, label: 'mariadb-secret',props: { data: { 'root-password':'changeme', 'db-password':'changeme' } } },
+      { type: 'PersistentVolumeClaim', x: 900, y: 340, label: 'mariadb-pvc', props: { size: '8Gi' } },
+    ],
+    connections: [[0,1],[1,2],[3,4],[3,5],[3,6]],
+  },
+  {
+    id: 'prometheus',
+    name: 'Prometheus + Grafana',
+    repo: 'prometheus-community/kube-prometheus-stack',
+    desc: 'The observability stack: metrics scraping + dashboards + alerting.',
+    nodes: [
+      { type: 'StatefulSet', x: 180, y: 160, label: 'prometheus',  props: { image: 'prom/prometheus:v2.54.0', port: 9090, replicas: 1 } },
+      { type: 'Service',     x: 420, y: 160, label: 'prom-svc',    props: { serviceType: 'ClusterIP', port: 9090 } },
+      { type: 'ConfigMap',   x: 180, y: 340, label: 'prom-config', props: { data: { 'prometheus.yml':'scrape_configs: [...]' } } },
+      { type: 'Deployment',  x: 660, y: 160, label: 'grafana',     props: { image: 'grafana/grafana:11.2.0', port: 3000, replicas: 1, env: { GF_SECURITY_ADMIN_PASSWORD: 'admin' } } },
+      { type: 'Service',     x: 900, y: 160, label: 'grafana-svc', props: { serviceType: 'NodePort', port: 3000 } },
+      { type: 'Ingress',     x: 1140, y: 160, label: 'grafana-ing',props: { host: 'grafana.local', path: '/' } },
+    ],
+    connections: [[0,1],[0,2],[3,4],[4,5],[1,3]],
+  },
+  {
+    id: 'elk',
+    name: 'ELK Stack',
+    repo: 'elastic/elasticsearch + kibana + filebeat',
+    desc: 'Elasticsearch, Kibana, and Filebeat for log aggregation and search.',
+    nodes: [
+      { type: 'StatefulSet', x: 180, y: 160, label: 'elasticsearch', props: { image: 'docker.elastic.co/elasticsearch/elasticsearch:8.15.0', port: 9200, replicas: 3, env: { 'discovery.type':'single-node', ES_JAVA_OPTS:'-Xms512m -Xmx512m' } } },
+      { type: 'Service',     x: 420, y: 160, label: 'es-svc',        props: { serviceType: 'ClusterIP', port: 9200 } },
+      { type: 'Deployment',  x: 180, y: 340, label: 'kibana',        props: { image: 'docker.elastic.co/kibana/kibana:8.15.0', port: 5601, replicas: 1 } },
+      { type: 'Service',     x: 420, y: 340, label: 'kibana-svc',    props: { serviceType: 'ClusterIP', port: 5601 } },
+      { type: 'Ingress',     x: 660, y: 340, label: 'kibana-ing',    props: { host: 'kibana.local', path: '/' } },
+      { type: 'DaemonSet',   x: 180, y: 520, label: 'filebeat',      props: { image: 'docker.elastic.co/beats/filebeat:8.15.0', replicas: 1 } },
+      { type: 'ConfigMap',   x: 420, y: 520, label: 'filebeat-cfg',  props: { data: { 'filebeat.yml':'output.elasticsearch: ...' } } },
+    ],
+    connections: [[0,1],[2,3],[3,4],[2,1],[5,6],[5,1]],
+  },
+  {
+    id: 'ingress-nginx',
+    name: 'ingress-nginx Controller',
+    repo: 'ingress-nginx/ingress-nginx',
+    desc: 'The canonical NGINX-based Ingress controller for kind clusters.',
+    nodes: [
+      { type: 'Deployment', x: 180, y: 160, label: 'ingress-nginx-controller', props: { image: 'registry.k8s.io/ingress-nginx/controller:v1.11.2', port: 80, replicas: 1 } },
+      { type: 'Service',    x: 420, y: 160, label: 'ingress-nginx-svc',        props: { serviceType: 'LoadBalancer', port: 80 } },
+      { type: 'ConfigMap',  x: 180, y: 340, label: 'ingress-nginx-cfg',        props: { data: { 'use-forwarded-headers':'true' } } },
+    ],
+    connections: [[0,1],[0,2]],
+  },
+];
+
+function openHelmModal() {
+  showModal('⎈ Helm Templates', `
+    <p class="text-xs text-slate-500 mb-4">Pick a canonical Helm chart to drop its resources onto the canvas. These mirror what <code>helm template &lt;chart&gt;</code> would produce for the core objects.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      ${HELM_TEMPLATES.map(t => `
+        <div class="border border-slate-200 rounded-lg p-3 hover:border-indigo-400 hover:shadow-md transition cursor-pointer" onclick="loadHelmTemplate('${t.id}')">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-indigo-600 text-xl">⎈</span>
+            <span class="font-semibold text-slate-900">${t.name}</span>
+          </div>
+          <div class="text-[11px] text-slate-500 font-mono mb-1">${t.repo}</div>
+          <div class="text-xs text-slate-600">${t.desc}</div>
+        </div>
+      `).join('')}
+    </div>
+  `, true);
+}
+
+function loadHelmTemplate(id) {
+  const tpl = HELM_TEMPLATES.find(t => t.id === id);
+  if (!tpl) return;
+  loadGraph(tpl.nodes, tpl.connections);
+  closeModal();
+  toast(`Loaded Helm template: ${tpl.name}`, 'success');
+}
+
+// ----------- Example apps modal -----------
+const EXAMPLE_APPS = [
+  {
+    id: 'three-tier',
+    name: '3-Tier Web App',
+    desc: 'Classic web + API + database with ingress, configmap, and secret.',
+    nodes: [
+      { type: 'Ingress',     x: 180, y: 80,  label: 'app-ingress', props: { host: 'app.local', path: '/' } },
+      { type: 'Service',     x: 180, y: 220, label: 'web-svc',     props: { serviceType: 'ClusterIP', port: 80 } },
+      { type: 'WebFrontend', x: 180, y: 360, label: 'web',         preset: 'web' },
+      { type: 'Service',     x: 440, y: 220, label: 'api-svc',     props: { serviceType: 'ClusterIP', port: 3000 } },
+      { type: 'APIServer',   x: 440, y: 360, label: 'api',         preset: 'api' },
+      { type: 'ConfigMap',   x: 700, y: 220, label: 'api-config',  props: { data: { LOG_LEVEL:'info', API_PORT:'3000' } } },
+      { type: 'Secret',      x: 700, y: 360, label: 'api-secrets', props: { data: { JWT_SECRET:'change-me', DB_PASSWORD:'change-me' } } },
+      { type: 'Service',     x: 440, y: 520, label: 'db-svc',      props: { serviceType: 'ClusterIP', port: 5432 } },
+      { type: 'Database',    x: 700, y: 520, label: 'postgres',    preset: 'db' },
+      { type: 'PersistentVolumeClaim', x: 960, y: 520, label: 'postgres-pvc', props: { size: '10Gi' } },
+    ],
+    connections: [[0,1],[1,2],[2,3],[3,4],[4,5],[4,6],[4,7],[7,8],[8,9]],
+  },
+  {
+    id: 'microservices',
+    name: 'Microservices Demo',
+    desc: 'Frontend + 2 APIs + Redis cache + Postgres + RabbitMQ message queue.',
+    nodes: [
+      { type: 'Ingress',     x: 180, y: 80,  label: 'shop-ingress',  props: { host: 'shop.local', path: '/' } },
+      { type: 'Service',     x: 180, y: 220, label: 'frontend-svc',  props: { serviceType: 'ClusterIP', port: 80 } },
+      { type: 'WebFrontend', x: 180, y: 360, label: 'frontend',      preset: 'web' },
+      { type: 'Service',     x: 420, y: 220, label: 'catalog-svc',   props: { serviceType: 'ClusterIP', port: 3000 } },
+      { type: 'APIServer',   x: 420, y: 360, label: 'catalog-api',   preset: 'api' },
+      { type: 'Service',     x: 660, y: 220, label: 'orders-svc',    props: { serviceType: 'ClusterIP', port: 3000 } },
+      { type: 'APIServer',   x: 660, y: 360, label: 'orders-api',    preset: 'api' },
+      { type: 'Cache',       x: 420, y: 520, label: 'redis',         preset: 'cache' },
+      { type: 'Database',    x: 660, y: 520, label: 'orders-db',     preset: 'db' },
+      { type: 'MessageQueue',x: 900, y: 360, label: 'rabbitmq',      preset: 'mq' },
+      { type: 'NetworkPolicy', x: 900, y: 520, label: 'default-deny', props: {} },
+    ],
+    connections: [[0,1],[1,2],[2,3],[2,5],[3,4],[5,6],[4,7],[6,8],[6,9],[4,9]],
+  },
+  {
+    id: 'mean',
+    name: 'MEAN Stack',
+    desc: 'MongoDB + Express + Angular + Node — full JS stack.',
+    nodes: [
+      { type: 'Ingress',     x: 180, y: 80,  label: 'mean-ingress', props: { host: 'mean.local', path: '/' } },
+      { type: 'Service',     x: 180, y: 220, label: 'angular-svc',  props: { serviceType: 'ClusterIP', port: 80 } },
+      { type: 'WebFrontend', x: 180, y: 360, label: 'angular',      props: { image: 'node:20-alpine', port: 80, replicas: 2 } },
+      { type: 'Service',     x: 440, y: 220, label: 'express-svc',  props: { serviceType: 'ClusterIP', port: 3000 } },
+      { type: 'APIServer',   x: 440, y: 360, label: 'express-api',  preset: 'api' },
+      { type: 'Service',     x: 700, y: 220, label: 'mongo-svc',    props: { serviceType: 'ClusterIP', port: 27017 } },
+      { type: 'DocStore',    x: 700, y: 360, label: 'mongodb',      preset: 'doc' },
+      { type: 'PersistentVolumeClaim', x: 960, y: 360, label: 'mongo-pvc', props: { size: '10Gi' } },
+    ],
+    connections: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7]],
+  },
+  {
+    id: 'cms',
+    name: 'Headless CMS + CDN',
+    desc: 'Strapi CMS with Postgres and an nginx edge cache for assets.',
+    nodes: [
+      { type: 'Ingress',     x: 180, y: 80,  label: 'cms-ingress', props: { host: 'cms.local', path: '/' } },
+      { type: 'Service',     x: 180, y: 220, label: 'edge-svc',    props: { serviceType: 'ClusterIP', port: 80 } },
+      { type: 'WebFrontend', x: 180, y: 360, label: 'nginx-edge',  preset: 'web' },
+      { type: 'Service',     x: 440, y: 220, label: 'strapi-svc',  props: { serviceType: 'ClusterIP', port: 1337 } },
+      { type: 'APIServer',   x: 440, y: 360, label: 'strapi',      props: { image: 'strapi/strapi:latest', port: 1337, replicas: 2 } },
+      { type: 'Service',     x: 700, y: 220, label: 'db-svc',      props: { serviceType: 'ClusterIP', port: 5432 } },
+      { type: 'Database',    x: 700, y: 360, label: 'postgres',    preset: 'db' },
+      { type: 'ConfigMap',   x: 440, y: 520, label: 'strapi-cfg',  props: { data: { NODE_ENV:'production' } } },
+    ],
+    connections: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[4,7]],
+  },
+];
+
+function openExampleModal() {
+  showModal('📦 Example App Solutions', `
+    <p class="text-xs text-slate-500 mb-4">Pre-wired reference architectures. Loading one replaces the current canvas.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      ${EXAMPLE_APPS.map(a => `
+        <div class="border border-slate-200 rounded-lg p-3 hover:border-purple-400 hover:shadow-md transition cursor-pointer" onclick="loadExample('${a.id}')">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-purple-600 text-xl">📦</span>
+            <span class="font-semibold text-slate-900">${a.name}</span>
+          </div>
+          <div class="text-xs text-slate-600">${a.desc}</div>
+          <div class="text-[11px] text-slate-400 mt-1">${a.nodes.length} resources · ${a.connections.length} connections</div>
+        </div>
+      `).join('')}
+    </div>
+  `, true);
+}
+
+function loadExample(id) {
+  const ex = EXAMPLE_APPS.find(e => e.id === id);
+  if (!ex) return;
+  loadGraph(ex.nodes, ex.connections);
+  closeModal();
+  toast(`Loaded example: ${ex.name}`, 'success');
+}
+
+// ----------- Graph loader helper -----------
+function loadGraph(nodeDefs, connDefs) {
+  clearCanvasSilent();
+  const created = [];
+  nodeDefs.forEach(def => {
+    const n = addNode(def.type, def.x, def.y, def.preset, {
+      label: def.label,
+      props: def.props ? { ...def.props, name: def.label, namespace: document.getElementById('namespace').value || 'default' } : {},
+    });
+    created.push(n);
+  });
+  (connDefs || []).forEach(([i,j]) => addConnection(created[i].id, created[j].id));
+  selectNode(null);
+}
+function clearCanvasSilent() {
+  Object.values(state.nodes).forEach(n => n.el.remove());
+  state.nodes = {};
+  state.connections = [];
+  state.selected = null;
+  redrawConnections();
+  updateCounts();
+  updateEmptyState();
+}
+
+// -------------------------- TOASTS --------------------------
+function toast(msg, kind='info') {
+  const colors = { info:'bg-slate-800', success:'bg-emerald-600', error:'bg-red-600' };
+  const el = document.createElement('div');
+  el.className = `toast ${colors[kind]} text-white text-xs px-3 py-2 rounded-lg shadow-lg`;
+  el.textContent = msg;
+  document.getElementById('toastRoot').appendChild(el);
+  setTimeout(() => { el.style.opacity='0'; el.style.transition='opacity .3s'; }, 2200);
+  setTimeout(() => el.remove(), 2600);
+}
+
+// -------------------------- INIT --------------------------
+renderPalette();
+updateEmptyState();
+
+// Auto-load a starter on first visit so the dashboard isn't empty
+setTimeout(() => {
+  if (Object.keys(state.nodes).length === 0) {
+    loadGraph(EXAMPLE_APPS[0].nodes, EXAMPLE_APPS[0].connections);
+    toast('Loaded "3-Tier Web App" example — click Clear to start fresh', 'info');
+  }
+}, 300);
+</script>
+
+</body>
+</html>

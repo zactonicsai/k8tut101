@@ -23,6 +23,7 @@
       <span class="font-semibold text-slate-900">K8s on macOS Tutorial</span>
     </div>
     <div class="hidden md:flex gap-4 text-sm">
+      <a href="/k8draw.html" class="hover:text-blue-600">Visual Designer</a>
       <a href="#tutorial" class="hover:text-blue-600">Tutorial</a>
       <a href="#explanations" class="hover:text-blue-600">Explanations</a>
       <a href="#helm-tools" class="hover:text-blue-600">Helm &amp; Tools</a>
@@ -30,6 +31,7 @@
       <a href="#gitops" class="hover:text-blue-600">GitOps</a>
       <a href="#production" class="hover:text-blue-600">Production</a>
       <a href="#rancher" class="hover:text-blue-600">Rancher</a>
+      <a href="#cicd" class="hover:text-blue-600">CI/CD</a>
       <a href="#resources" class="hover:text-blue-600">Resources</a>
     </div>
   </div>
@@ -1401,6 +1403,592 @@ docker logs &lt;container-id&gt; 2&gt;&amp;1 | grep "Bootstrap Password:"</pre>
     <div class="mt-4 text-center">
       <button onclick="openModal('deep-rancher-compare')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium px-4 py-2 rounded-lg hover:shadow-md">✨ Detailed Comparison</button>
     </div>
+  </div>
+</section>
+
+<!-- PART 9: CI/CD PIPELINES & COMPLETE FLOW DIAGRAM -->
+<section id="cicd" class="mb-16">
+  <h2 class="text-3xl font-bold text-slate-900 mb-2">Part 9 · CI/CD Pipelines &amp; The Complete Picture</h2>
+  <p class="text-slate-600 mb-8">How code goes from a developer's laptop to running pods in production — automatically.</p>
+
+  <!-- HERO -->
+  <div class="bg-gradient-to-br from-orange-500 via-rose-500 to-pink-600 text-white rounded-2xl p-8 mb-8 shadow-lg">
+    <div class="flex items-start gap-4">
+      <div class="text-5xl">🔄</div>
+      <div class="flex-1">
+        <h3 class="text-2xl font-bold mb-2">From <code class="bg-white/20 px-2 py-0.5 rounded">git push</code> to production pods</h3>
+        <p class="text-orange-50 mb-4">
+          CI/CD (Continuous Integration / Continuous Delivery) is the bridge between "code on a laptop" and "running in the cluster."
+          In Kubernetes-world, there are two main patterns: <strong>push-based CI/CD</strong> (pipeline runs kubectl/Helm to deploy)
+          and <strong>GitOps</strong> (pipeline commits to a Git repo; a controller in the cluster syncs from Git).
+          GitOps has become the dominant pattern for production K8s.
+        </p>
+        <div class="flex flex-wrap gap-2">
+          <span class="px-3 py-1 bg-white/20 rounded-full text-xs">GitHub Actions</span>
+          <span class="px-3 py-1 bg-white/20 rounded-full text-xs">Tekton</span>
+          <span class="px-3 py-1 bg-white/20 rounded-full text-xs">Jenkins X</span>
+          <span class="px-3 py-1 bg-white/20 rounded-full text-xs">Argo Workflows</span>
+          <span class="px-3 py-1 bg-white/20 rounded-full text-xs">GitOps</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ COMPLETE FLOW DIAGRAM ============ -->
+  <h3 class="text-2xl font-bold text-slate-900 mb-4">🎯 The Big Picture — How Everything Fits Together</h3>
+  <p class="text-slate-600 mb-6">Every tool in this tutorial (Parts 1–8) has a place in the end-to-end flow. Here's how they connect:</p>
+
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6 overflow-x-auto">
+    <svg viewBox="0 0 1100 700" class="w-full min-w-[900px]" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+        </marker>
+        <linearGradient id="gDev" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#1d4ed8"/>
+        </linearGradient>
+        <linearGradient id="gCI" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#d97706"/>
+        </linearGradient>
+        <linearGradient id="gReg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#6d28d9"/>
+        </linearGradient>
+        <linearGradient id="gGit" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#059669"/>
+        </linearGradient>
+        <linearGradient id="gK8s" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#4338ca"/>
+        </linearGradient>
+        <linearGradient id="gObs" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#14b8a6"/><stop offset="100%" stop-color="#0f766e"/>
+        </linearGradient>
+      </defs>
+
+      <!-- STAGE LABELS -->
+      <text x="100" y="25" font-family="sans-serif" font-size="11" font-weight="bold" fill="#64748b">1. CODE</text>
+      <text x="290" y="25" font-family="sans-serif" font-size="11" font-weight="bold" fill="#64748b">2. BUILD &amp; TEST</text>
+      <text x="510" y="25" font-family="sans-serif" font-size="11" font-weight="bold" fill="#64748b">3. PACKAGE</text>
+      <text x="710" y="25" font-family="sans-serif" font-size="11" font-weight="bold" fill="#64748b">4. DEPLOY (GitOps)</text>
+      <text x="920" y="25" font-family="sans-serif" font-size="11" font-weight="bold" fill="#64748b">5. RUN</text>
+
+      <!-- DEVELOPER -->
+      <rect x="30" y="40" width="160" height="70" rx="10" fill="url(#gDev)"/>
+      <text x="110" y="68" font-family="sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">👨‍💻 Developer</text>
+      <text x="110" y="88" font-family="sans-serif" font-size="10" fill="#dbeafe" text-anchor="middle">writes code</text>
+      <text x="110" y="100" font-family="sans-serif" font-size="10" fill="#dbeafe" text-anchor="middle">git push</text>
+
+      <!-- GIT SOURCE REPO -->
+      <rect x="30" y="150" width="160" height="70" rx="10" fill="url(#gGit)"/>
+      <text x="110" y="178" font-family="sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">📦 Source Repo</text>
+      <text x="110" y="198" font-family="sans-serif" font-size="10" fill="#d1fae5" text-anchor="middle">GitHub / GitLab</text>
+      <text x="110" y="210" font-family="sans-serif" font-size="10" fill="#d1fae5" text-anchor="middle">app code</text>
+
+      <!-- CI BUILD -->
+      <rect x="240" y="40" width="170" height="70" rx="10" fill="url(#gCI)"/>
+      <text x="325" y="65" font-family="sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">⚙️ CI Pipeline</text>
+      <text x="325" y="82" font-family="sans-serif" font-size="9" fill="#fef3c7" text-anchor="middle">GitHub Actions / Tekton</text>
+      <text x="325" y="95" font-family="sans-serif" font-size="9" fill="#fef3c7" text-anchor="middle">Jenkins X / GitLab CI</text>
+
+      <!-- CI TEST -->
+      <rect x="240" y="130" width="170" height="50" rx="8" fill="#fff" stroke="#f59e0b" stroke-width="2"/>
+      <text x="325" y="152" font-family="sans-serif" font-size="11" font-weight="bold" fill="#92400e" text-anchor="middle">🧪 Unit + Integration</text>
+      <text x="325" y="168" font-family="sans-serif" font-size="9" fill="#92400e" text-anchor="middle">Run tests in kind cluster</text>
+
+      <!-- CI SCAN -->
+      <rect x="240" y="195" width="170" height="50" rx="8" fill="#fff" stroke="#f59e0b" stroke-width="2"/>
+      <text x="325" y="217" font-family="sans-serif" font-size="11" font-weight="bold" fill="#92400e" text-anchor="middle">🔎 Security Scan</text>
+      <text x="325" y="233" font-family="sans-serif" font-size="9" fill="#92400e" text-anchor="middle">Trivy / Snyk / Grype</text>
+
+      <!-- CI BUILD IMAGE -->
+      <rect x="240" y="260" width="170" height="50" rx="8" fill="#fff" stroke="#f59e0b" stroke-width="2"/>
+      <text x="325" y="282" font-family="sans-serif" font-size="11" font-weight="bold" fill="#92400e" text-anchor="middle">🏗️ Build Image</text>
+      <text x="325" y="298" font-family="sans-serif" font-size="9" fill="#92400e" text-anchor="middle">Docker / Buildpacks / Kaniko</text>
+
+      <!-- REGISTRY -->
+      <rect x="460" y="60" width="170" height="80" rx="10" fill="url(#gReg)"/>
+      <text x="545" y="90" font-family="sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">🐳 Container Registry</text>
+      <text x="545" y="108" font-family="sans-serif" font-size="9" fill="#e9d5ff" text-anchor="middle">Docker Hub / GHCR</text>
+      <text x="545" y="120" font-family="sans-serif" font-size="9" fill="#e9d5ff" text-anchor="middle">ECR / GCR / Harbor</text>
+      <text x="545" y="132" font-family="sans-serif" font-size="9" fill="#e9d5ff" text-anchor="middle">myapp:v1.2.3</text>
+
+      <!-- HELM CHARTS -->
+      <rect x="460" y="170" width="170" height="60" rx="10" fill="#fff" stroke="#8b5cf6" stroke-width="2"/>
+      <text x="545" y="195" font-family="sans-serif" font-size="12" font-weight="bold" fill="#5b21b6" text-anchor="middle">⎈ Helm Charts</text>
+      <text x="545" y="213" font-family="sans-serif" font-size="9" fill="#5b21b6" text-anchor="middle">Values templated per env</text>
+
+      <!-- GITOPS REPO -->
+      <rect x="460" y="260" width="170" height="70" rx="10" fill="url(#gGit)"/>
+      <text x="545" y="285" font-family="sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">📘 GitOps Repo</text>
+      <text x="545" y="303" font-family="sans-serif" font-size="9" fill="#d1fae5" text-anchor="middle">Desired cluster state</text>
+      <text x="545" y="315" font-family="sans-serif" font-size="9" fill="#d1fae5" text-anchor="middle">Updated image tags</text>
+
+      <!-- ARGO/FLUX -->
+      <rect x="670" y="60" width="170" height="80" rx="10" fill="url(#gGit)"/>
+      <text x="755" y="90" font-family="sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">🚀 GitOps Agent</text>
+      <text x="755" y="108" font-family="sans-serif" font-size="10" fill="#d1fae5" text-anchor="middle">Argo CD / Flux CD</text>
+      <text x="755" y="123" font-family="sans-serif" font-size="9" fill="#d1fae5" text-anchor="middle">polls Git, reconciles</text>
+
+      <!-- RANCHER -->
+      <rect x="670" y="170" width="170" height="60" rx="10" fill="#fff" stroke="#0891b2" stroke-width="2"/>
+      <text x="755" y="193" font-family="sans-serif" font-size="12" font-weight="bold" fill="#0e7490" text-anchor="middle">🐄 Rancher</text>
+      <text x="755" y="211" font-family="sans-serif" font-size="9" fill="#0e7490" text-anchor="middle">Multi-cluster mgmt &amp; UI</text>
+
+      <!-- K8S CLUSTER -->
+      <rect x="890" y="60" width="180" height="230" rx="12" fill="url(#gK8s)"/>
+      <text x="980" y="90" font-family="sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">☸️ K8s Cluster</text>
+
+      <rect x="905" y="105" width="150" height="35" rx="6" fill="#fff" fill-opacity="0.2"/>
+      <text x="980" y="122" font-family="sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">Deployment</text>
+      <text x="980" y="134" font-family="sans-serif" font-size="8" fill="#e0e7ff" text-anchor="middle">replicas: 3</text>
+
+      <rect x="905" y="148" width="150" height="35" rx="6" fill="#fff" fill-opacity="0.2"/>
+      <text x="980" y="165" font-family="sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">Service + Ingress</text>
+      <text x="980" y="177" font-family="sans-serif" font-size="8" fill="#e0e7ff" text-anchor="middle">TLS + routing</text>
+
+      <rect x="905" y="191" width="150" height="35" rx="6" fill="#fff" fill-opacity="0.2"/>
+      <text x="980" y="208" font-family="sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">ConfigMaps + Secrets</text>
+
+      <rect x="905" y="234" width="150" height="45" rx="6" fill="#fff" fill-opacity="0.2"/>
+      <text x="980" y="253" font-family="sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">HPA + PDB</text>
+      <text x="980" y="267" font-family="sans-serif" font-size="8" fill="#e0e7ff" text-anchor="middle">autoscale + availability</text>
+
+      <!-- OBSERVABILITY -->
+      <rect x="460" y="370" width="380" height="80" rx="12" fill="url(#gObs)"/>
+      <text x="650" y="398" font-family="sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">📊 Observability Stack</text>
+      <text x="560" y="420" font-family="sans-serif" font-size="10" fill="#ccfbf1" text-anchor="middle">🔥 Prometheus</text>
+      <text x="650" y="420" font-family="sans-serif" font-size="10" fill="#ccfbf1" text-anchor="middle">📈 Grafana</text>
+      <text x="740" y="420" font-family="sans-serif" font-size="10" fill="#ccfbf1" text-anchor="middle">📜 Loki</text>
+      <text x="650" y="438" font-family="sans-serif" font-size="9" fill="#ccfbf1" text-anchor="middle">metrics · logs · traces · alerts</text>
+
+      <!-- SECURITY LAYER -->
+      <rect x="30" y="370" width="380" height="80" rx="12" fill="#1e293b"/>
+      <text x="220" y="398" font-family="sans-serif" font-size="14" font-weight="bold" fill="#fbbf24" text-anchor="middle">🔐 Security Layer (cross-cutting)</text>
+      <text x="110" y="420" font-family="sans-serif" font-size="9" fill="#e2e8f0" text-anchor="middle">🎫 RBAC</text>
+      <text x="180" y="420" font-family="sans-serif" font-size="9" fill="#e2e8f0" text-anchor="middle">🛡️ NetworkPolicy</text>
+      <text x="270" y="420" font-family="sans-serif" font-size="9" fill="#e2e8f0" text-anchor="middle">🔑 Vault</text>
+      <text x="340" y="420" font-family="sans-serif" font-size="9" fill="#e2e8f0" text-anchor="middle">🦅 Falco</text>
+      <text x="220" y="438" font-family="sans-serif" font-size="9" fill="#cbd5e1" text-anchor="middle">applied at every stage</text>
+
+      <!-- USER AT BOTTOM -->
+      <rect x="890" y="370" width="180" height="80" rx="12" fill="#fff" stroke="#4338ca" stroke-width="3"/>
+      <text x="980" y="400" font-family="sans-serif" font-size="14" font-weight="bold" fill="#4338ca" text-anchor="middle">🌐 End User</text>
+      <text x="980" y="420" font-family="sans-serif" font-size="10" fill="#4338ca" text-anchor="middle">via LoadBalancer</text>
+      <text x="980" y="435" font-family="sans-serif" font-size="10" fill="#4338ca" text-anchor="middle">/ Ingress</text>
+
+      <!-- ARROWS -->
+      <!-- Dev → Source Repo -->
+      <line x1="110" y1="110" x2="110" y2="148" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+      <!-- Source Repo → CI -->
+      <line x1="190" y1="150" x2="240" y2="90" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+      <!-- CI stages (vertical flow) -->
+      <line x1="325" y1="110" x2="325" y2="128" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+      <line x1="325" y1="180" x2="325" y2="193" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+      <line x1="325" y1="245" x2="325" y2="258" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+      <!-- CI build → Registry -->
+      <line x1="410" y1="280" x2="455" y2="130" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+      <!-- CI → GitOps repo (update image tag) -->
+      <line x1="410" y1="285" x2="455" y2="290" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+      <text x="420" y="278" font-family="sans-serif" font-size="8" fill="#64748b">update tag</text>
+      <!-- GitOps Repo → Agent -->
+      <line x1="630" y1="285" x2="668" y2="135" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+      <!-- Helm charts → Agent -->
+      <line x1="630" y1="200" x2="668" y2="110" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+      <!-- Registry → K8s cluster -->
+      <line x1="630" y1="100" x2="888" y2="120" stroke="#64748b" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+      <text x="720" y="95" font-family="sans-serif" font-size="8" fill="#64748b">pull image</text>
+      <!-- Agent → K8s cluster -->
+      <line x1="840" y1="100" x2="888" y2="110" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+      <!-- Rancher → K8s -->
+      <line x1="840" y1="200" x2="888" y2="175" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+      <!-- K8s → Observability (metrics) -->
+      <line x1="950" y1="290" x2="800" y2="368" stroke="#0d9488" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+      <text x="860" y="340" font-family="sans-serif" font-size="9" fill="#0d9488">scrape metrics</text>
+      <!-- K8s → End user -->
+      <line x1="980" y1="290" x2="980" y2="368" stroke="#4338ca" stroke-width="3" marker-end="url(#arrow)"/>
+
+      <!-- BOTTOM CAPTION -->
+      <rect x="30" y="490" width="1040" height="180" rx="10" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="50" y="515" font-family="sans-serif" font-size="13" font-weight="bold" fill="#0f172a">The Flow in 8 Steps:</text>
+      <text x="50" y="537" font-family="sans-serif" font-size="11" fill="#334155">1. Developer pushes code to the source repo on GitHub/GitLab.</text>
+      <text x="50" y="554" font-family="sans-serif" font-size="11" fill="#334155">2. CI pipeline triggers: runs tests (often inside a kind cluster), scans for vulnerabilities.</text>
+      <text x="50" y="571" font-family="sans-serif" font-size="11" fill="#334155">3. CI builds a Docker image and pushes it to the container registry with a version tag.</text>
+      <text x="50" y="588" font-family="sans-serif" font-size="11" fill="#334155">4. CI commits the new image tag to a GitOps repo (Helm values or Kustomize overlay).</text>
+      <text x="50" y="605" font-family="sans-serif" font-size="11" fill="#334155">5. GitOps agent (Argo CD or Flux) inside the cluster detects the Git change.</text>
+      <text x="50" y="622" font-family="sans-serif" font-size="11" fill="#334155">6. Agent renders the manifests (via Helm/Kustomize) and applies them to K8s — cluster pulls the new image.</text>
+      <text x="50" y="639" font-family="sans-serif" font-size="11" fill="#334155">7. Kubernetes rolls out pods gradually, respecting PDBs; HPA scales with traffic.</text>
+      <text x="50" y="656" font-family="sans-serif" font-size="11" fill="#334155">8. Prometheus scrapes metrics; Grafana dashboards light up; Alertmanager pages on-call if things go wrong.</text>
+    </svg>
+  </div>
+
+  <div class="flex justify-center mb-10">
+    <button onclick="openModal('deep-pipeline-flow')" class="bg-gradient-to-r from-orange-500 to-rose-600 text-white font-semibold px-6 py-3 rounded-lg hover:shadow-lg">✨ Deep Dive: The Complete Flow Explained</button>
+  </div>
+
+  <!-- ============ CI/CD TOOLS ============ -->
+  <h3 class="text-2xl font-bold text-slate-900 mb-4">🛠️ CI/CD Tools for Kubernetes</h3>
+  <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🐙</div>
+      <h4 class="font-semibold text-slate-900 mb-1">GitHub Actions</h4>
+      <p class="text-xs text-slate-600 mb-3">YAML workflows in <code class="bg-slate-100 px-1 rounded">.github/workflows/</code>. Free for public repos, generous free tier for private. Huge marketplace of pre-built actions.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://docs.github.com/actions" target="_blank" class="text-blue-600 text-xs hover:underline">docs →</a>
+        <button onclick="openModal('deep-github-actions')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🦊</div>
+      <h4 class="font-semibold text-slate-900 mb-1">GitLab CI/CD</h4>
+      <p class="text-xs text-slate-600 mb-3">Built into GitLab. One <code class="bg-slate-100 px-1 rounded">.gitlab-ci.yml</code> file. Native K8s integration with auto-DevOps feature that infers pipelines.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://docs.gitlab.com/ee/ci/" target="_blank" class="text-blue-600 text-xs hover:underline">docs →</a>
+        <button onclick="openModal('deep-gitlab-ci')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🎯</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Tekton</h4>
+      <p class="text-xs text-slate-600 mb-3">K8s-native CI/CD. Every step is a pod. Tasks and Pipelines are CRDs. CNCF graduated. The engine behind OpenShift Pipelines and Jenkins X.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://tekton.dev" target="_blank" class="text-blue-600 text-xs hover:underline">tekton.dev →</a>
+        <button onclick="openModal('deep-tekton')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🤵</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Jenkins X</h4>
+      <p class="text-xs text-slate-600 mb-3">Opinionated cloud-native successor to Jenkins, built on Tekton + Argo CD. Full GitOps workflow out of the box.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://jenkins-x.io" target="_blank" class="text-blue-600 text-xs hover:underline">jenkins-x.io →</a>
+        <button onclick="openModal('deep-jenkins-x')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🐙</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Argo Workflows</h4>
+      <p class="text-xs text-slate-600 mb-3">K8s-native workflow engine. Sibling to Argo CD. Great for CI pipelines, ML training, data processing — anything DAG-shaped.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://argo-workflows.readthedocs.io" target="_blank" class="text-blue-600 text-xs hover:underline">docs →</a>
+        <button onclick="openModal('deep-argo-workflows')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">⭕</div>
+      <h4 class="font-semibold text-slate-900 mb-1">CircleCI</h4>
+      <p class="text-xs text-slate-600 mb-3">SaaS CI known for speed and developer experience. First-class K8s deployment support via orbs (reusable config packages).</p>
+      <div class="flex justify-between items-center">
+        <a href="https://circleci.com/docs/" target="_blank" class="text-blue-600 text-xs hover:underline">docs →</a>
+        <button onclick="openModal('deep-circleci')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🚁</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Drone CI</h4>
+      <p class="text-xs text-slate-600 mb-3">Simple, container-native CI. Every step runs in a Docker container. Self-hostable and lightweight. Owned by Harness now.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://www.drone.io" target="_blank" class="text-blue-600 text-xs hover:underline">drone.io →</a>
+        <button onclick="openModal('deep-drone')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🪣</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Buildkite</h4>
+      <p class="text-xs text-slate-600 mb-3">Hybrid: SaaS control plane + self-hosted agents. Popular at Shopify, Airbnb, Slack for running builds on their own infrastructure.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://buildkite.com/docs" target="_blank" class="text-blue-600 text-xs hover:underline">docs →</a>
+        <button onclick="openModal('deep-buildkite')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🐚</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Harness</h4>
+      <p class="text-xs text-slate-600 mb-3">Commercial continuous delivery platform with strong progressive delivery, rollback automation, and cloud cost management.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://docs.harness.io" target="_blank" class="text-blue-600 text-xs hover:underline">docs →</a>
+        <button onclick="openModal('deep-harness')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ EXAMPLE WORKFLOWS ============ -->
+  <h3 class="text-2xl font-bold text-slate-900 mb-4">📝 Real Pipeline Examples</h3>
+
+  <!-- GitHub Actions example -->
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+    <h4 class="text-lg font-semibold mb-2 flex items-center gap-2"><span class="text-2xl">🐙</span> GitHub Actions: Full Build → Push → GitOps Update</h4>
+    <p class="text-slate-600 text-sm mb-3"><code class="bg-slate-100 px-1 rounded">.github/workflows/deploy.yml</code></p>
+    <pre class="bg-slate-900 text-blue-200 p-4 rounded-lg text-xs overflow-x-auto">name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npm test
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version
+        id: meta
+        run: echo "version=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Security scan with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+  update-gitops:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout GitOps repo
+        uses: actions/checkout@v4
+        with:
+          repository: myorg/gitops-manifests
+          token: ${{ secrets.GITOPS_TOKEN }}
+
+      - name: Update image tag in Helm values
+        run: |
+          sed -i "s|tag: .*|tag: ${{ needs.build-and-push.outputs.version }}|" \
+            apps/myapp/values-prod.yaml
+
+      - name: Commit and push
+        run: |
+          git config user.name "ci-bot"
+          git config user.email "[email protected]"
+          git add .
+          git commit -m "chore: bump myapp to ${{ needs.build-and-push.outputs.version }}"
+          git push
+          # Argo CD will now sync this change to the cluster automatically</pre>
+  </div>
+
+  <!-- Tekton example -->
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+    <h4 class="text-lg font-semibold mb-2 flex items-center gap-2"><span class="text-2xl">🎯</span> Tekton: K8s-Native Pipeline</h4>
+    <p class="text-slate-600 text-sm mb-3">Tekton runs <em>inside</em> your K8s cluster — each Task is a pod.</p>
+    <pre class="bg-slate-900 text-blue-200 p-4 rounded-lg text-xs overflow-x-auto">apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: build-and-deploy
+spec:
+  params:
+    - name: repo-url
+    - name: image-name
+  workspaces:
+    - name: shared-data
+  tasks:
+    - name: fetch-source
+      taskRef:
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: shared-data
+      params:
+        - name: url
+          value: $(params.repo-url)
+
+    - name: run-tests
+      runAfter: [fetch-source]
+      taskRef:
+        name: npm-test
+      workspaces:
+        - name: source
+          workspace: shared-data
+
+    - name: build-image
+      runAfter: [run-tests]
+      taskRef:
+        name: kaniko           # builds images without Docker daemon
+      params:
+        - name: IMAGE
+          value: $(params.image-name)
+      workspaces:
+        - name: source
+          workspace: shared-data
+
+    - name: deploy
+      runAfter: [build-image]
+      taskRef:
+        name: kubernetes-actions
+      params:
+        - name: script
+          value: |
+            kubectl set image deployment/myapp \
+              myapp=$(params.image-name)
+---
+# Trigger it with:
+# tkn pipeline start build-and-deploy \
+#   -p repo-url=https://github.com/me/app \
+#   -p image-name=ghcr.io/me/app:v1 \
+#   -w name=shared-data,claimName=ws-pvc</pre>
+  </div>
+
+  <!-- Jenkins X example -->
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+    <h4 class="text-lg font-semibold mb-2 flex items-center gap-2"><span class="text-2xl">🤵</span> Jenkins X: Preview Environments per PR</h4>
+    <p class="text-slate-600 text-sm mb-3">Jenkins X auto-generates a preview environment for every pull request. <code class="bg-slate-100 px-1 rounded">jenkins-x.yml</code>:</p>
+    <pre class="bg-slate-900 text-blue-200 p-4 rounded-lg text-xs overflow-x-auto">buildPack: none
+pipelineConfig:
+  pipelines:
+    pullRequest:
+      pipeline:
+        stages:
+          - name: ci
+            steps:
+              - name: build
+                image: golang:1.21
+                command: go build ./...
+              - name: test
+                command: go test ./...
+              - name: build-image
+                command: /kaniko/executor --dockerfile=Dockerfile
+    release:
+      pipeline:
+        stages:
+          - name: release
+            steps:
+              - name: promote
+                # Jenkins X auto-promotes to staging
+                # then waits for manual approval to prod
+                command: jx promote --version $VERSION --env staging</pre>
+    <p class="text-slate-600 text-sm mt-3">Every PR gets its own namespace with a live URL to click and test — SREs call it "PR-driven development."</p>
+  </div>
+
+  <!-- GitLab CI example -->
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-10">
+    <h4 class="text-lg font-semibold mb-2 flex items-center gap-2"><span class="text-2xl">🦊</span> GitLab CI: Multi-stage with K8s Deploy</h4>
+    <pre class="bg-slate-900 text-blue-200 p-4 rounded-lg text-xs overflow-x-auto">stages:
+  - test
+  - build
+  - scan
+  - deploy
+
+variables:
+  IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+
+test:
+  stage: test
+  image: node:20
+  script:
+    - npm ci
+    - npm test
+
+build:
+  stage: build
+  image: docker:24
+  services: [docker:24-dind]
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $IMAGE .
+    - docker push $IMAGE
+
+scan:
+  stage: scan
+  image: aquasec/trivy
+  script:
+    - trivy image --exit-code 1 --severity HIGH,CRITICAL $IMAGE
+
+deploy-prod:
+  stage: deploy
+  image: bitnami/kubectl
+  only: [main]
+  environment:
+    name: production
+    url: https://myapp.example.com
+  script:
+    - kubectl config use-context myorg/gitops:prod
+    - kubectl set image deployment/myapp myapp=$IMAGE
+    - kubectl rollout status deployment/myapp</pre>
+  </div>
+
+  <!-- CI/CD PATTERNS -->
+  <h3 class="text-2xl font-bold text-slate-900 mb-4">🎨 CI/CD Patterns Worth Knowing</h3>
+  <div class="grid md:grid-cols-2 gap-5 mb-6">
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <h4 class="font-semibold text-slate-900 mb-2">🚦 Blue/Green Deployment</h4>
+      <p class="text-sm text-slate-600 mb-2">Run two identical environments. "Green" serves traffic; deploy new version to "Blue"; flip the Service selector. Instant rollback if something breaks.</p>
+      <p class="text-xs text-slate-500"><strong>Tools:</strong> Argo Rollouts, Flagger, manual kubectl patch</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <h4 class="font-semibold text-slate-900 mb-2">🐤 Canary Deployment</h4>
+      <p class="text-sm text-slate-600 mb-2">Send 5% of traffic to the new version. Monitor metrics. If healthy, gradually shift to 25%, 50%, 100%. If errors spike, auto-rollback.</p>
+      <p class="text-xs text-slate-500"><strong>Tools:</strong> Flagger, Argo Rollouts, Istio + Prometheus</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <h4 class="font-semibold text-slate-900 mb-2">🌿 Feature Flags</h4>
+      <p class="text-sm text-slate-600 mb-2">Deploy new code dark; toggle it on for specific users via a flag service. Decouples "deploy" from "release."</p>
+      <p class="text-xs text-slate-500"><strong>Tools:</strong> LaunchDarkly, Flagsmith, Unleash, OpenFeature</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <h4 class="font-semibold text-slate-900 mb-2">🎭 Preview Environments</h4>
+      <p class="text-sm text-slate-600 mb-2">Every pull request gets its own namespace with the new code running. Reviewers click a URL to test before merging.</p>
+      <p class="text-xs text-slate-500"><strong>Tools:</strong> Jenkins X, vcluster, Okteto, Gitpod</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <h4 class="font-semibold text-slate-900 mb-2">🔐 Image Signing &amp; Provenance</h4>
+      <p class="text-sm text-slate-600 mb-2">Sign images cryptographically in CI; verify signatures at admission time in K8s. Supply-chain security.</p>
+      <p class="text-xs text-slate-500"><strong>Tools:</strong> Sigstore/cosign, Notary, SLSA framework</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <h4 class="font-semibold text-slate-900 mb-2">🛑 Progressive Delivery + SLO Gates</h4>
+      <p class="text-sm text-slate-600 mb-2">Automatically halt a rollout if error rate or latency breaches defined SLOs. The safety net for canary deploys.</p>
+      <p class="text-xs text-slate-500"><strong>Tools:</strong> Flagger + Prometheus, Argo Rollouts + Kayenta</p>
+    </div>
+  </div>
+
+  <div class="flex justify-center">
+    <button onclick="openModal('deep-cicd-patterns')" class="bg-gradient-to-r from-orange-500 to-rose-600 text-white font-semibold px-6 py-3 rounded-lg hover:shadow-lg">✨ Deep Dive: Choosing the Right Pattern</button>
   </div>
 </section>
 
@@ -2979,6 +3567,326 @@ helm install rancher rancher-latest/rancher \\
         <li><strong>"I'm a small team with Docker + K8s"</strong> → Portainer</li>
         <li><strong>"I'm an individual dev"</strong> → Lens IDE (or k9s in the terminal)</li>
       </ul>`
+  },
+
+  // ============ PART 9: CI/CD MODALS ============
+  'deep-pipeline-flow': {
+    title: '🎯 The Complete Flow — Step by Step',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">Why this flow exists</h4>
+      <p>Every piece in the diagram solves a specific problem. Removing any one either breaks automation or creates a safety/speed gap. Here's what each stage gives you:</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Stage 1: Code &amp; Source Repo</h4>
+      <p>Git is the source of truth for <em>application</em> code. Pull request reviews, signed commits, branch protection rules — all the engineering discipline stuff lives here. Tools: <strong>GitHub, GitLab, Bitbucket, Gitea</strong>.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Stage 2: CI Pipeline (Build &amp; Test)</h4>
+      <p>Triggered by git push. Runs tests, scans for vulnerabilities, builds the Docker image. This is where bugs get caught before they reach prod. Key sub-stages:</p>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Unit &amp; integration tests</strong> — often run inside a throwaway kind cluster for K8s-specific tests</li>
+        <li><strong>Security scan</strong> — Trivy, Grype, or Snyk check for CVEs in dependencies and the base image</li>
+        <li><strong>SBOM generation</strong> — Software Bill of Materials for supply-chain compliance</li>
+        <li><strong>Image signing</strong> — cosign signs the image so K8s can verify it at deploy time</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Stage 3: Container Registry</h4>
+      <p>The "hard drive" for built images. Every version lives here, indexed by tag. Key capabilities: vulnerability rescanning of stored images, retention policies (delete images older than 90 days), and replication across regions for speed. Tools: <strong>Docker Hub, GHCR, ECR, GCR, Harbor, Artifactory</strong>.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Stage 4: GitOps Repo (Configuration Source of Truth)</h4>
+      <p>This is a <em>separate</em> Git repo from your application code. It contains the desired state of your clusters — Helm values, Kustomize overlays, raw manifests. The CI pipeline commits the new image tag here. Why separate repos? Security (fewer people need write access to prod config) and clarity (config changes and code changes have different review workflows).</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Stage 5: GitOps Agent (Argo CD or Flux)</h4>
+      <p>A controller running inside the cluster. It polls the GitOps repo every few minutes. When it detects a change, it renders the manifests (via Helm/Kustomize) and applies them to the cluster. If someone kubectl-edits a resource manually, the agent reverts it to match Git — enforcing that Git IS the truth.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Stage 6: Kubernetes Cluster</h4>
+      <p>The cluster pulls the new image from the registry, starts new pods, and gradually replaces old ones via rolling update. PDBs ensure minimum availability. HPA scales based on load. If anything goes wrong, rollback is one <code class="bg-slate-100 px-1 rounded">kubectl rollout undo</code> away — or just a revert in Git if you're pure GitOps.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Stage 7: Observability (The Feedback Loop)</h4>
+      <p>Prometheus scrapes metrics from every pod. Loki collects logs. Grafana visualizes both. Alertmanager pages on-call if SLOs break. This is how you know if the deployment actually worked — or if it quietly broke something.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Why GitOps wins over "push-based" CI/CD</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Auditability</strong> — every cluster change is a Git commit with author and timestamp</li>
+        <li><strong>Rollback</strong> — git revert, done. No pipeline re-runs.</li>
+        <li><strong>Security</strong> — CI doesn't need cluster credentials; the agent in the cluster pulls from Git</li>
+        <li><strong>Disaster recovery</strong> — rebuild any cluster from scratch just by pointing Argo at the GitOps repo</li>
+        <li><strong>Multi-cluster</strong> — same pattern scales from 1 to 1000 clusters trivially</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://opengitops.dev/" target="_blank" class="text-blue-600 hover:underline">OpenGitOps principles</a> · <a href="https://www.weave.works/technologies/gitops/" target="_blank" class="text-blue-600 hover:underline">Weaveworks GitOps (coined the term)</a></p>`
+  },
+
+  'deep-github-actions': {
+    title: '🐙 GitHub Actions — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>GitHub Actions is GitHub's native CI/CD system, launched in 2018. It runs workflows defined in YAML files inside <code class="bg-slate-100 px-1 rounded">.github/workflows/</code>. Workflows consist of <strong>jobs</strong> (run on a runner), which consist of <strong>steps</strong> (shell commands or actions). The killer feature is the <strong>Actions Marketplace</strong>: 20,000+ reusable community actions you can drop into your pipeline.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Runners</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>GitHub-hosted runners</strong> — free for public repos, generous limits for private. Ubuntu, macOS, Windows.</li>
+        <li><strong>Self-hosted runners</strong> — run on your own infrastructure for security or cost reasons.</li>
+        <li><strong>Actions Runner Controller (ARC)</strong> — runs self-hosted runners as K8s pods, autoscaling based on queue depth. Used by Stripe, GitHub itself, LinkedIn.</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Microsoft</strong> (owner of GitHub) — most internal projects use Actions.</li>
+        <li><strong>Open-source ecosystem</strong> — nearly every major OSS K8s project (kubectl, Helm, kind, cert-manager) runs CI on Actions.</li>
+        <li><strong>Netflix, Shopify, Stripe</strong> — supplemental to other CI systems or primary.</li>
+        <li><strong>Over 100 million workflow runs per day</strong> across GitHub per official stats.</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://github.com/marketplace?type=actions" target="_blank" class="text-blue-600 hover:underline">Actions Marketplace</a></p>`
+  },
+
+  'deep-gitlab-ci': {
+    title: '🦊 GitLab CI/CD — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>GitLab CI/CD is built into every GitLab installation since 2012, making GitLab one of the first "all-in-one" DevOps platforms. Pipelines are defined in a single <code class="bg-slate-100 px-1 rounded">.gitlab-ci.yml</code> file. Jobs run on <strong>runners</strong> (GitLab's equivalent of GitHub Actions runners), which can be shared, group-level, or project-specific.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Standout features</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Auto DevOps</strong> — detects your language and generates a full pipeline automatically (build, test, scan, deploy to K8s).</li>
+        <li><strong>Review apps</strong> — automatic preview environments per merge request.</li>
+        <li><strong>Built-in container registry</strong> — no separate registry needed.</li>
+        <li><strong>Merge trains</strong> — serializes merges so they don't break each other.</li>
+        <li><strong>Agent for Kubernetes</strong> — secure, pull-based connection from cluster to GitLab (no exposed API server).</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>NASA JPL</strong> — uses GitLab CI for mission-critical systems.</li>
+        <li><strong>Siemens, Goldman Sachs, Nvidia</strong> — enterprise on-prem GitLab users.</li>
+        <li><strong>CERN</strong> — self-hosted GitLab for scientific computing pipelines.</li>
+        <li><strong>Over 30 million registered users</strong> on GitLab.com.</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://docs.gitlab.com/ee/ci/quick_start/" target="_blank" class="text-blue-600 hover:underline">GitLab CI quickstart</a></p>`
+  },
+
+  'deep-tekton': {
+    title: '🎯 Tekton — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>Tekton is a Kubernetes-native CI/CD framework. Every building block is a K8s Custom Resource: <strong>Task</strong> (a sequence of steps in a pod), <strong>Pipeline</strong> (DAG of tasks), <strong>TaskRun/PipelineRun</strong> (an execution instance). Tekton runs <em>inside</em> your cluster — no external CI server. Originally created at Google as part of the Knative project, now a CNCF graduated project.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Key concepts</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Tasks as pods</strong> — each Task runs as a pod with one container per step</li>
+        <li><strong>Workspaces</strong> — PVCs shared between tasks for passing artifacts</li>
+        <li><strong>Triggers</strong> — webhook-based pipeline activation (EventListener + TriggerBinding)</li>
+        <li><strong>Tekton Hub</strong> — community catalog of reusable Tasks (git-clone, kaniko, buildah, etc.)</li>
+        <li><strong>Tekton Chains</strong> — supply-chain security, signs artifacts automatically</li>
+        <li><strong>tkn CLI</strong> — command-line interface for managing pipelines</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Red Hat OpenShift Pipelines</strong> — Tekton is the official Pipelines feature in OpenShift.</li>
+        <li><strong>Google Cloud Build</strong> — uses Tekton internally.</li>
+        <li><strong>IBM Cloud</strong> — Tekton powers IBM's managed CI/CD.</li>
+        <li><strong>Jenkins X</strong> — entire engine is Tekton.</li>
+        <li><strong>CD Foundation</strong> — Tekton is one of the foundational projects alongside Jenkins, Spinnaker, and Argo.</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://tekton.dev/docs/" target="_blank" class="text-blue-600 hover:underline">Tekton documentation</a> · <a href="https://hub.tekton.dev" target="_blank" class="text-blue-600 hover:underline">Tekton Hub catalog</a></p>`
+  },
+
+  'deep-jenkins-x': {
+    title: '🤵 Jenkins X — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>Jenkins X is NOT traditional Jenkins. Despite the name, it shares almost no code with classic Jenkins. It's a cloud-native CI/CD platform built from scratch on top of <strong>Tekton</strong> (for pipelines) and <strong>Argo CD</strong> (for GitOps deployment). It was created in 2018 by James Strachan (creator of Groovy) specifically for Kubernetes.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Opinions baked in</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>GitOps by default</strong> — environments are Git repos, promotions are pull requests</li>
+        <li><strong>Preview environments</strong> — every PR gets its own namespace automatically</li>
+        <li><strong>Build Packs</strong> — auto-detects your language and generates Dockerfiles</li>
+        <li><strong>Trunk-based development</strong> — designed for teams that merge to main frequently</li>
+        <li><strong>Chat ops</strong> — GitHub PR comments drive promotions and rollbacks</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Who it's for — and who it isn't</h4>
+      <p>Jenkins X shines for greenfield projects where the team is willing to adopt its opinions wholesale. It's NOT a good fit if you have existing Jenkins pipelines to migrate, or if your team wants fine-grained control over every step.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>CloudBees</strong> (the company behind Jenkins) — maintains the commercial version.</li>
+        <li><strong>Startup platform teams</strong> — adopters who want a batteries-included CI/CD without building from parts.</li>
+        <li><strong>Less widespread than Tekton or GitHub Actions</strong> — Jenkins X is niche but devoted.</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://jenkins-x.io/v3/about/overview/" target="_blank" class="text-blue-600 hover:underline">Jenkins X overview</a></p>`
+  },
+
+  'deep-argo-workflows': {
+    title: '🐙 Argo Workflows — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>Argo Workflows is a K8s-native workflow engine for running DAGs (directed acyclic graphs) of containers. It's the sibling project to Argo CD. While Argo CD handles GitOps deployment, Argo Workflows handles any multi-step containerized process. Created at Applatix, now a CNCF graduated project maintained by Intuit.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Use cases beyond CI/CD</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>ML training pipelines</strong> — Kubeflow Pipelines is built on Argo Workflows</li>
+        <li><strong>Data engineering</strong> — ETL jobs that need to scale on K8s</li>
+        <li><strong>Batch processing</strong> — scientific computing, genomics, rendering farms</li>
+        <li><strong>Infrastructure automation</strong> — provisioning workflows with approval gates</li>
+        <li><strong>Traditional CI/CD</strong> — build, test, deploy pipelines</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Key features</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>DAG and step-based</strong> workflow definitions</li>
+        <li><strong>Parametrization &amp; templating</strong> — reusable workflow templates</li>
+        <li><strong>Artifact passing</strong> — via S3, GCS, or volumes</li>
+        <li><strong>Event-driven</strong> via Argo Events</li>
+        <li><strong>Loops, conditionals, retries</strong> — production-grade control flow</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Intuit</strong> — creator and largest production user; runs millions of workflows per day.</li>
+        <li><strong>NVIDIA</strong> — ML training pipelines.</li>
+        <li><strong>BlackRock</strong> — financial data processing.</li>
+        <li><strong>Adobe, Alibaba, IBM</strong> — public case studies.</li>
+        <li><strong>Kubeflow Pipelines</strong> — the ML community's default pipeline tool uses Argo under the hood.</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://argoproj.github.io/workflows/" target="_blank" class="text-blue-600 hover:underline">Argo Workflows docs</a></p>`
+  },
+
+  'deep-circleci': {
+    title: '⭕ CircleCI — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>CircleCI is a SaaS CI/CD platform founded in 2011. Known for fast builds (aggressive caching, parallelism), a clean configuration model, and strong developer experience. Pipelines are defined in <code class="bg-slate-100 px-1 rounded">.circleci/config.yml</code>. The standout feature is <strong>Orbs</strong> — reusable configuration packages (think: npm for CI config).</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Key features</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Executors</strong> — run jobs on Docker, Linux VMs, macOS, or Windows</li>
+        <li><strong>Resource classes</strong> — pick CPU/RAM tier per job (small → 24xlarge)</li>
+        <li><strong>Orbs Registry</strong> — 3,000+ shareable orbs (kubernetes, aws-cli, slack, etc.)</li>
+        <li><strong>SSH debugging</strong> — rerun a failed job with SSH access for live inspection</li>
+        <li><strong>Runner agents</strong> — self-hosted option for GPU, secure networks, or compliance</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Spotify, Lyft, Expedia</strong> — long-time large customers.</li>
+        <li><strong>Docker Inc.</strong> — uses CircleCI for Docker itself.</li>
+        <li><strong>Ford, GoPro, PagerDuty</strong> — enterprise adopters.</li>
+        <li><strong>Many open-source projects</strong> — free tier for OSS is generous.</li>
+      </ul>`
+  },
+
+  'deep-drone': {
+    title: '🚁 Drone CI — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>Drone is a simple, container-native CI platform. Every pipeline step runs in a Docker container. The config is a single <code class="bg-slate-100 px-1 rounded">.drone.yml</code> file. Founded by Brad Rydzewski in 2014, acquired by Harness in 2020 (the OSS version is now called <strong>Gitness</strong> or integrated into Harness products).</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Why people love it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Dead simple</strong> — one binary, one YAML file, one Docker container per step</li>
+        <li><strong>Self-hostable</strong> — runs comfortably on a single VM or K8s cluster</li>
+        <li><strong>Plugin ecosystem</strong> — pre-built plugins for deploys, notifications, artifacts</li>
+        <li><strong>Secrets management</strong> — encrypted per-repo or cluster-wide</li>
+        <li><strong>Kubernetes runner</strong> — jobs run as pods, perfect for kind/K8s-native teams</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Self-hosted Gitea/Gogs users</strong> — natural pairing.</li>
+        <li><strong>Homelab enthusiasts</strong> — popular in r/selfhosted for home K8s CI.</li>
+        <li><strong>Smaller teams</strong> — those who find Jenkins too heavy and GitHub Actions too cloudy.</li>
+        <li><strong>Cloud-agnostic startups</strong> — Drone runs anywhere Docker runs.</li>
+      </ul>`
+  },
+
+  'deep-buildkite': {
+    title: '🪣 Buildkite — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>Buildkite takes a hybrid approach: the control plane (pipeline orchestration, UI, logs) is SaaS, but the <strong>agents</strong> that execute jobs run on your own infrastructure. This means your source code and secrets never leave your network, while you get the polish of a managed SaaS for the UI.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Why big engineering orgs choose it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Massive parallelism</strong> — tested running tens of thousands of agents in parallel</li>
+        <li><strong>Dynamic pipelines</strong> — pipelines can generate more steps at runtime</li>
+        <li><strong>Custom runners</strong> — you control the hardware: Mac minis for iOS builds, GPU boxes for ML, etc.</li>
+        <li><strong>Security posture</strong> — code and secrets never touch a third-party CI cloud</li>
+        <li><strong>Clusters feature</strong> — autoscaling agents on K8s with helm charts</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Shopify</strong> — massive Ruby on Rails monorepo CI on Buildkite.</li>
+        <li><strong>Airbnb, Pinterest, Slack</strong> — long-time users.</li>
+        <li><strong>Canva, PagerDuty, Envato</strong> — Australian tech scene adopters (Buildkite itself is Australian).</li>
+        <li><strong>Elastic</strong> — runs Elasticsearch CI on Buildkite.</li>
+      </ul>`
+  },
+
+  'deep-harness': {
+    title: '🐚 Harness — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>Harness is a commercial "software delivery platform" founded in 2017 by Jyoti Bansal (creator of AppDynamics). It covers the full delivery lifecycle: CI, CD, feature flags, cloud cost management, chaos engineering, and more. The standout feature is <strong>AI-powered verification</strong> — Harness automatically compares post-deploy metrics to baselines and rolls back if it detects regression.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">What it includes</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Harness CI</strong> — derived from Drone (which Harness acquired)</li>
+        <li><strong>Harness CD</strong> — the original product; progressive deployments with GitOps</li>
+        <li><strong>Feature Flags</strong> — built-in flag service (competitor to LaunchDarkly)</li>
+        <li><strong>Cloud Cost Management</strong> — K8s and cloud spend optimization</li>
+        <li><strong>Chaos Engineering</strong> — based on the LitmusChaos project</li>
+        <li><strong>Security Testing Orchestration (STO)</strong> — unified security scanning</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Citibank, Nationwide</strong> — regulated enterprise customers.</li>
+        <li><strong>McAfee, Jaguar Land Rover, NCR</strong> — public case studies.</li>
+        <li><strong>Typical customer profile</strong> — mid-to-large enterprises looking for a single vendor to cover the delivery platform.</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://www.harness.io" target="_blank" class="text-blue-600 hover:underline">harness.io</a></p>`
+  },
+
+  'deep-cicd-patterns': {
+    title: '🎨 Choosing the Right Delivery Pattern',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">The core tradeoff: speed vs safety</h4>
+      <p>Every delivery pattern exists somewhere on the speed↔safety spectrum. Pick based on your risk tolerance, traffic volume, and rollback cost.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🚦 Blue/Green</h4>
+      <p><strong>When it fits:</strong> Stateful apps, databases, systems where a "half-deployed" state is dangerous. Instant rollback is the killer feature.</p>
+      <p><strong>Downside:</strong> Requires 2x capacity during the switch. Expensive.</p>
+      <p><strong>Used by:</strong> Banks, healthcare, trading systems.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🐤 Canary</h4>
+      <p><strong>When it fits:</strong> High-traffic user-facing services where you want to catch problems with real user traffic, not synthetic tests.</p>
+      <p><strong>Downside:</strong> Requires strong metrics to detect regression automatically. Small percentages of users may see bugs.</p>
+      <p><strong>Used by:</strong> Netflix, Facebook, Google — practically every big tech company.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🌿 Feature Flags</h4>
+      <p><strong>When it fits:</strong> When you need to decouple deploy from release. Let QA test in production, or launch to beta users only.</p>
+      <p><strong>Downside:</strong> Flag sprawl — codebases accumulate hundreds of flags over time. Requires cleanup discipline.</p>
+      <p><strong>Used by:</strong> Slack, GitHub, Intercom, Atlassian.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🎭 Preview Environments</h4>
+      <p><strong>When it fits:</strong> Teams where code review benefits from clicking a live URL, not reading diffs.</p>
+      <p><strong>Downside:</strong> Cluster resources per PR add up. Usually ephemeral with cleanup on merge/close.</p>
+      <p><strong>Used by:</strong> Vercel's entire product model; many SaaS platform teams.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🔐 Image Signing (Supply Chain Security)</h4>
+      <p><strong>When it fits:</strong> Compliance-driven environments, anyone worried about supply-chain attacks like SolarWinds or XZ utils.</p>
+      <p><strong>Downside:</strong> Operational overhead — key management, verification policies.</p>
+      <p><strong>Used by:</strong> US Federal agencies (post-Executive Order 14028), finance, defense contractors.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🛑 Progressive Delivery + SLO Gates</h4>
+      <p><strong>When it fits:</strong> Teams mature enough to have well-defined SLOs. This is the "holy grail" of automated safe delivery.</p>
+      <p><strong>Downside:</strong> Requires cultural investment in SRE practices and error budgets.</p>
+      <p><strong>Used by:</strong> Google, Netflix, LinkedIn — basically anyone who's read the SRE book.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-4">💡 Combining patterns</h4>
+      <p>These aren't mutually exclusive. A mature pipeline often combines several: <strong>canary deployments</strong> gated by <strong>SLO checks</strong>, using <strong>signed images</strong>, with <strong>feature flags</strong> for finer-grained rollout, in <strong>preview environments</strong> for PRs. Start with one pattern, add more as the org matures.</p>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://argoproj.github.io/argo-rollouts/" target="_blank" class="text-blue-600 hover:underline">Argo Rollouts</a> · <a href="https://flagger.app" target="_blank" class="text-blue-600 hover:underline">Flagger</a> · <a href="https://sre.google/books/" target="_blank" class="text-blue-600 hover:underline">Google SRE books</a></p>`
   }
 };
 
