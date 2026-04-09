@@ -6,16 +6,81 @@
 <title>K8s Studio — Visual Kubernetes Dashboard</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
+  /* ================= THEME VARIABLES ================= */
+  :root, [data-theme="light"] {
+    --bg-app: #f1f5f9;
+    --bg-header: #0f172a;
+    --bg-panel: #ffffff;
+    --bg-panel-sub: #f8fafc;
+    --bg-canvas: #0f172a;
+    --bg-grid: rgba(148,163,184,0.08);
+    --border: #e2e8f0;
+    --border-strong: #cbd5e1;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --text-dim: #94a3b8;
+    --text-inverse: #f8fafc;
+    --accent: #3b82f6;
+    --port-bg: #64748b;
+    --port-border: #0f172a;
+    --conn-stroke: #60a5fa;
+    --node-body: #ffffff;
+    --node-border: #cbd5e1;
+    --hover-bg: #f1f5f9;
+    --scroll-thumb: #cbd5e1;
+  }
+  [data-theme="dark"] {
+    --bg-app: #0b1220;
+    --bg-header: #050a17;
+    --bg-panel: #0f172a;
+    --bg-panel-sub: #111c33;
+    --bg-canvas: #050a17;
+    --bg-grid: rgba(148,163,184,0.06);
+    --border: #1e293b;
+    --border-strong: #334155;
+    --text: #e2e8f0;
+    --text-muted: #94a3b8;
+    --text-dim: #64748b;
+    --text-inverse: #f8fafc;
+    --accent: #60a5fa;
+    --port-bg: #94a3b8;
+    --port-border: #050a17;
+    --conn-stroke: #60a5fa;
+    --node-body: #1e293b;
+    --node-border: #334155;
+    --hover-bg: #1e293b;
+    --scroll-thumb: #334155;
+  }
+
   html, body { height: 100%; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg-app);
+    color: var(--text);
+  }
   pre, code { font-family: 'Menlo','Monaco','Courier New',monospace; }
+
+  /* Theme-aware utility overrides */
+  .themed-panel { background: var(--bg-panel); border-color: var(--border); color: var(--text); }
+  .themed-subpanel { background: var(--bg-panel-sub); border-color: var(--border); color: var(--text); }
+  .themed-header { background: var(--bg-header); border-color: var(--border); }
+  .themed-border { border-color: var(--border) !important; }
+  .themed-text { color: var(--text); }
+  .themed-muted { color: var(--text-muted); }
+  .themed-dim { color: var(--text-dim); }
+  .themed-input {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-strong);
+    color: var(--text);
+  }
+  .themed-hover:hover { background: var(--hover-bg); }
 
   /* Canvas grid background */
   #canvas {
-    background-color: #0f172a;
+    background-color: var(--bg-canvas);
     background-image:
-      linear-gradient(rgba(148,163,184,0.08) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(148,163,184,0.08) 1px, transparent 1px);
+      linear-gradient(var(--bg-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
     background-size: 24px 24px;
   }
 
@@ -23,24 +88,38 @@
     position: absolute;
     user-select: none;
     cursor: move;
-    transition: box-shadow .15s, transform .05s;
+    transition: box-shadow .15s, transform .05s, opacity .3s;
   }
   .node:hover { box-shadow: 0 0 0 2px rgba(59,130,246,0.6), 0 10px 25px rgba(0,0,0,0.35); }
   .node.selected { box-shadow: 0 0 0 3px #3b82f6, 0 10px 25px rgba(0,0,0,0.5); }
+  .node.wizard-new { animation: popIn .5s ease-out; }
+  @keyframes popIn {
+    0% { transform: scale(0.3); opacity: 0; }
+    60% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .node-body {
+    background: var(--node-body);
+    border: 1px solid var(--node-border);
+    color: var(--text);
+  }
 
   .palette-item {
     cursor: grab;
     transition: transform .1s, background-color .1s;
+    background: var(--bg-panel);
+    border-color: var(--border);
+    color: var(--text);
   }
   .palette-item:active { cursor: grabbing; transform: scale(0.97); }
-  .palette-item:hover { background-color: #f1f5f9; }
+  .palette-item:hover { background-color: var(--hover-bg); }
 
   /* Connection port */
   .port {
     position: absolute;
     width: 12px; height: 12px;
-    background: #64748b;
-    border: 2px solid #0f172a;
+    background: var(--port-bg);
+    border: 2px solid var(--port-border);
     border-radius: 999px;
     cursor: crosshair;
   }
@@ -51,42 +130,77 @@
   .port.right { right: -7px; top: 50%; transform: translateY(-50%); }
 
   #connections { position: absolute; inset: 0; pointer-events: none; width:100%; height:100%; }
-  #connections path { stroke: #60a5fa; stroke-width: 2; fill: none; stroke-dasharray: 6 4; animation: dash 1s linear infinite; pointer-events: stroke; cursor: pointer; }
+  #connections path { stroke: var(--conn-stroke); stroke-width: 2; fill: none; stroke-dasharray: 6 4; animation: dash 1s linear infinite; pointer-events: stroke; cursor: pointer; }
   @keyframes dash { to { stroke-dashoffset: -20; } }
   #connections path:hover { stroke: #f87171; stroke-width: 3; }
+  #connections path.wizard-new { animation: dash 1s linear infinite, drawIn .6s ease-out; }
+  @keyframes drawIn { from { opacity: 0; stroke-width: 5; } to { opacity: 1; stroke-width: 2; } }
 
   .scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
   .scrollbar::-webkit-scrollbar-track { background: transparent; }
-  .scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  .scrollbar::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 4px; }
   .scrollbar-dark::-webkit-scrollbar-thumb { background: #334155; }
 
   .modal-backdrop { background: rgba(15,23,42,0.75); backdrop-filter: blur(4px); }
+  .modal-body-themed { background: var(--bg-panel); color: var(--text); }
 
   .toast { animation: slide-in .25s ease-out; }
   @keyframes slide-in { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-  .tab-btn.active { background:#1e293b; color:#60a5fa; border-color:#60a5fa; }
+  /* Wizard overlay */
+  #wizardPanel {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 40;
+    width: min(720px, calc(100vw - 48px));
+    background: var(--bg-panel);
+    border: 1px solid var(--border-strong);
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    color: var(--text);
+    animation: slide-in .3s ease-out;
+  }
+  #wizardPanel.hidden { display: none; }
+
+  .wizard-progress-dot {
+    width: 10px; height: 10px; border-radius: 999px;
+    background: var(--border-strong);
+    transition: background .2s, transform .2s;
+  }
+  .wizard-progress-dot.done { background: #10b981; }
+  .wizard-progress-dot.current { background: #3b82f6; transform: scale(1.4); }
+
+  /* Info explain section */
+  .info-section h4 { font-weight: 700; color: var(--text); margin-top: 12px; margin-bottom: 4px; font-size: 13px; }
+  .info-section p { color: var(--text-muted); font-size: 12px; line-height: 1.5; margin-bottom: 6px; }
+  .info-section code { background: var(--bg-panel-sub); padding: 1px 5px; border-radius: 3px; font-size: 11px; color: var(--accent); }
+  .info-section ul { list-style: disc; padding-left: 18px; color: var(--text-muted); font-size: 12px; }
+  .info-section ul li { margin-bottom: 3px; }
 </style>
 </head>
-<body class="bg-slate-100 text-slate-800 overflow-hidden">
+<body data-theme="light" class="overflow-hidden">
 
 <!-- ============================ TOP BAR ============================ -->
-<header class="h-14 bg-slate-900 border-b border-slate-700 flex items-center justify-between px-4 text-white">
+<header class="h-14 themed-header border-b flex items-center justify-between px-4 text-white">
   <div class="flex items-center gap-3">
     <div class="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center font-bold">⎈</div>
     <div>
-      <div class="font-semibold leading-tight">K8s Studio</div>
+      <div class="font-semibold leading-tight text-white">K8s Studio</div>
       <div class="text-xs text-slate-400 leading-tight">Visual cluster designer for kind &amp; Docker</div>
     </div>
   </div>
 
-  <div class="flex items-center gap-2">
-    <button onclick="openHelmModal()" class="px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-sm font-medium flex items-center gap-1">⎈ Helm Templates</button>
-    <button onclick="openExampleModal()" class="px-3 py-1.5 rounded-md bg-purple-600 hover:bg-purple-500 text-sm font-medium flex items-center gap-1">📦 Example Apps</button>
-    <button onclick="openYamlModal()" class="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-sm font-medium flex items-center gap-1">⬇ Export YAML</button>
-    <button onclick="openDeployModal()" class="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-500 text-sm font-medium">🚀 Deploy to kind</button>
-    <button onclick="clearCanvas()" class="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-red-600 text-sm font-medium">🗑 Clear</button>
-    <button onclick="openHelpModal()" class="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-sm font-medium">? Help</button>
+  <div class="flex items-center gap-2 flex-wrap">
+    <button onclick="openWizardModal()" class="px-3 py-1.5 rounded-md bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-sm font-medium flex items-center gap-1 text-white">🪄 Wizard</button>
+    <button onclick="openHelmModal()" class="px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-sm font-medium flex items-center gap-1 text-white">⎈ Helm</button>
+    <button onclick="openExampleModal()" class="px-3 py-1.5 rounded-md bg-purple-600 hover:bg-purple-500 text-sm font-medium flex items-center gap-1 text-white">📦 Examples</button>
+    <button onclick="openYamlModal()" class="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-sm font-medium flex items-center gap-1 text-white">⬇ YAML</button>
+    <button onclick="openDeployModal()" class="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-500 text-sm font-medium text-white">🚀 Deploy</button>
+    <button onclick="clearCanvas()" class="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-red-600 text-sm font-medium text-white">🗑</button>
+    <button onclick="toggleTheme()" id="themeBtn" title="Toggle theme" class="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-sm font-medium text-white">🌙</button>
+    <button onclick="openHelpModal()" class="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-sm font-medium text-white">?</button>
   </div>
 </header>
 
@@ -94,16 +208,16 @@
 <div class="flex" style="height: calc(100vh - 56px);">
 
   <!-- ===================== LEFT: PALETTE ===================== -->
-  <aside class="w-64 bg-white border-r border-slate-200 overflow-y-auto scrollbar">
-    <div class="p-3 border-b border-slate-200 bg-slate-50">
-      <div class="text-xs font-bold text-slate-500 uppercase tracking-wide">Component Palette</div>
-      <div class="text-[11px] text-slate-500 mt-1">Drag items onto the canvas</div>
+  <aside class="w-64 themed-panel border-r overflow-y-auto scrollbar">
+    <div class="p-3 border-b themed-border themed-subpanel">
+      <div class="text-xs font-bold themed-muted uppercase tracking-wide">Component Palette</div>
+      <div class="text-[11px] themed-dim mt-1">Drag items onto the canvas</div>
     </div>
 
     <div id="palette"></div>
 
-    <div class="p-3 border-t border-slate-200 bg-slate-50 text-[11px] text-slate-500">
-      💡 Tip: drag node to move it. Click a port (small circle) then click another port to connect.
+    <div class="p-3 border-t themed-border themed-subpanel text-[11px] themed-dim">
+      💡 Tip: drag to move. Click a port, then another port to connect. Click a node then hit <strong>ℹ Explain</strong> for details.
     </div>
   </aside>
 
@@ -134,27 +248,46 @@
   </main>
 
   <!-- ===================== RIGHT: INSPECTOR ===================== -->
-  <aside class="w-80 bg-white border-l border-slate-200 flex flex-col">
-    <div class="p-3 border-b border-slate-200 bg-slate-50">
-      <div class="text-xs font-bold text-slate-500 uppercase tracking-wide">Inspector</div>
+  <aside class="w-80 themed-panel border-l flex flex-col">
+    <div class="p-3 border-b themed-border themed-subpanel">
+      <div class="text-xs font-bold themed-muted uppercase tracking-wide">Inspector</div>
     </div>
     <div id="inspector" class="flex-1 overflow-y-auto scrollbar p-4 text-sm">
-      <div class="text-slate-400 text-center mt-8 text-xs">
+      <div class="themed-dim text-center mt-8 text-xs">
         Select a node on the canvas to edit its properties.
       </div>
     </div>
 
     <!-- Cluster settings footer -->
-    <div class="border-t border-slate-200 p-3 bg-slate-50">
-      <div class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Cluster Settings</div>
-      <label class="block text-[11px] text-slate-600">Cluster name</label>
-      <input id="clusterName" value="demo" class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" />
-      <label class="block text-[11px] text-slate-600">Namespace</label>
-      <input id="namespace" value="default" class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" oninput="document.getElementById('nsLabel').textContent=this.value||'default'" />
-      <label class="block text-[11px] text-slate-600">Worker nodes</label>
-      <input id="workerCount" type="number" min="0" max="10" value="2" class="w-full text-xs border border-slate-300 rounded px-2 py-1" />
+    <div class="border-t themed-border p-3 themed-subpanel">
+      <div class="text-xs font-bold themed-muted uppercase tracking-wide mb-2">Cluster Settings</div>
+      <label class="block text-[11px] themed-muted">Cluster name</label>
+      <input id="clusterName" value="demo" class="w-full text-xs themed-input rounded px-2 py-1 mb-2" />
+      <label class="block text-[11px] themed-muted">Namespace</label>
+      <input id="namespace" value="default" class="w-full text-xs themed-input rounded px-2 py-1 mb-2" oninput="document.getElementById('nsLabel').textContent=this.value||'default'" />
+      <label class="block text-[11px] themed-muted">Worker nodes</label>
+      <input id="workerCount" type="number" min="0" max="10" value="2" class="w-full text-xs themed-input rounded px-2 py-1" />
     </div>
   </aside>
+</div>
+
+<!-- ============================ WIZARD PANEL ============================ -->
+<div id="wizardPanel" class="hidden p-4">
+  <div class="flex items-start justify-between mb-2">
+    <div>
+      <div class="text-[11px] font-bold uppercase tracking-wide themed-muted" id="wizardScenarioName">Scenario</div>
+      <div class="text-base font-semibold themed-text" id="wizardStepTitle">Step title</div>
+    </div>
+    <button onclick="closeWizard()" class="themed-dim hover:text-red-500 text-xl leading-none">×</button>
+  </div>
+  <div id="wizardStepBody" class="text-sm themed-muted mb-3 leading-relaxed"></div>
+  <div class="flex items-center justify-between gap-3">
+    <div class="flex gap-1.5 items-center" id="wizardDots"></div>
+    <div class="flex gap-2">
+      <button id="wizardBack" onclick="wizardBack()" class="px-3 py-1.5 text-xs rounded border themed-border themed-text themed-hover">← Back</button>
+      <button id="wizardNext" onclick="wizardNext()" class="px-4 py-1.5 text-xs rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold">Next →</button>
+    </div>
+  </div>
 </div>
 
 <!-- ============================ MODAL CONTAINER ============================ -->
@@ -329,9 +462,9 @@ function addNode(type, x, y, preset, overrides = {}) {
       <span class="text-base leading-none">${meta.icon}</span>
       <span class="truncate flex-1">${type}</span>
     </div>
-    <div class="bg-white rounded-b-lg px-2 py-2 border border-t-0 border-slate-300">
-      <div class="text-[11px] font-mono text-slate-700 truncate node-label">${node.label}</div>
-      <div class="text-[10px] text-slate-500 truncate node-sub">${props.image || meta.desc}</div>
+    <div class="node-body rounded-b-lg px-2 py-2 border-t-0">
+      <div class="text-[11px] font-mono truncate node-label">${node.label}</div>
+      <div class="text-[10px] themed-dim truncate node-sub">${props.image || meta.desc}</div>
     </div>
     <div class="port top"    data-port="top"></div>
     <div class="port bottom" data-port="bottom"></div>
@@ -453,60 +586,63 @@ canvas.addEventListener('click', () => { selectNode(null); });
 function renderInspector() {
   const box = document.getElementById('inspector');
   if (!state.selected) {
-    box.innerHTML = `<div class="text-slate-400 text-center mt-8 text-xs">Select a node on the canvas to edit its properties.</div>`;
+    box.innerHTML = `<div class="themed-dim text-center mt-8 text-xs">Select a node on the canvas to edit its properties, or click <strong>🪄 Wizard</strong> to start a guided tour.</div>`;
     return;
   }
   const n = state.nodes[state.selected];
   if (!n) return;
   const envLines = Object.entries(n.props.env || {}).map(([k,v]) => `${k}=${v}`).join('\n');
   box.innerHTML = `
-    <div class="mb-3">
-      <div class="text-[11px] uppercase font-bold text-slate-500">Kind</div>
-      <div class="text-sm font-semibold">${n.type}</div>
+    <div class="mb-3 flex items-start justify-between gap-2">
+      <div>
+        <div class="text-[11px] uppercase font-bold themed-muted">Kind</div>
+        <div class="text-sm font-semibold themed-text">${n.type}</div>
+      </div>
+      <button onclick="openExplainModal('${n.type}')" class="text-[11px] px-2 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold whitespace-nowrap">ℹ Explain</button>
     </div>
-    <label class="block text-[11px] text-slate-600">Name</label>
-    <input class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" value="${n.props.name || ''}" oninput="updateProp('name', this.value)" />
+    <label class="block text-[11px] themed-muted">Name</label>
+    <input class="w-full text-xs themed-input rounded px-2 py-1 mb-2" value="${n.props.name || ''}" oninput="updateProp('name', this.value)" />
 
-    <label class="block text-[11px] text-slate-600">Namespace</label>
-    <input class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" value="${n.props.namespace || 'default'}" oninput="updateProp('namespace', this.value)" />
+    <label class="block text-[11px] themed-muted">Namespace</label>
+    <input class="w-full text-xs themed-input rounded px-2 py-1 mb-2" value="${n.props.namespace || 'default'}" oninput="updateProp('namespace', this.value)" />
 
     ${['Deployment','StatefulSet','DaemonSet','Pod','WebFrontend','APIServer','AppServer','Database','DocStore','Cache','MessageQueue'].includes(n.type) ? `
-      <label class="block text-[11px] text-slate-600">Image</label>
-      <input class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" value="${n.props.image || ''}" oninput="updateProp('image', this.value)" />
+      <label class="block text-[11px] themed-muted">Image</label>
+      <input class="w-full text-xs themed-input rounded px-2 py-1 mb-2" value="${n.props.image || ''}" oninput="updateProp('image', this.value)" />
 
-      <label class="block text-[11px] text-slate-600">Container Port</label>
-      <input type="number" class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" value="${n.props.port || ''}" oninput="updateProp('port', parseInt(this.value)||null)" />
+      <label class="block text-[11px] themed-muted">Container Port</label>
+      <input type="number" class="w-full text-xs themed-input rounded px-2 py-1 mb-2" value="${n.props.port || ''}" oninput="updateProp('port', parseInt(this.value)||null)" />
 
-      <label class="block text-[11px] text-slate-600">Replicas</label>
-      <input type="number" min="0" class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" value="${n.props.replicas || 1}" oninput="updateProp('replicas', parseInt(this.value)||1)" />
+      <label class="block text-[11px] themed-muted">Replicas</label>
+      <input type="number" min="0" class="w-full text-xs themed-input rounded px-2 py-1 mb-2" value="${n.props.replicas || 1}" oninput="updateProp('replicas', parseInt(this.value)||1)" />
 
-      <label class="block text-[11px] text-slate-600">Environment (KEY=value per line)</label>
-      <textarea rows="3" class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2 font-mono" oninput="updateEnv(this.value)">${envLines}</textarea>
+      <label class="block text-[11px] themed-muted">Environment (KEY=value per line)</label>
+      <textarea rows="3" class="w-full text-xs themed-input rounded px-2 py-1 mb-2 font-mono" oninput="updateEnv(this.value)">${envLines}</textarea>
     ` : ''}
 
     ${n.type === 'Service' ? `
-      <label class="block text-[11px] text-slate-600">Service Type</label>
-      <select class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" onchange="updateProp('serviceType', this.value)">
+      <label class="block text-[11px] themed-muted">Service Type</label>
+      <select class="w-full text-xs themed-input rounded px-2 py-1 mb-2" onchange="updateProp('serviceType', this.value)">
         ${['ClusterIP','NodePort','LoadBalancer'].map(t => `<option ${n.props.serviceType===t?'selected':''}>${t}</option>`).join('')}
       </select>
-      <label class="block text-[11px] text-slate-600">Port</label>
-      <input type="number" class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" value="${n.props.port || 80}" oninput="updateProp('port', parseInt(this.value)||80)" />
+      <label class="block text-[11px] themed-muted">Port</label>
+      <input type="number" class="w-full text-xs themed-input rounded px-2 py-1 mb-2" value="${n.props.port || 80}" oninput="updateProp('port', parseInt(this.value)||80)" />
     ` : ''}
 
     ${n.type === 'Ingress' ? `
-      <label class="block text-[11px] text-slate-600">Host</label>
-      <input class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" value="${n.props.host || 'demo.local'}" oninput="updateProp('host', this.value)" />
-      <label class="block text-[11px] text-slate-600">Path</label>
-      <input class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2" value="${n.props.path || '/'}" oninput="updateProp('path', this.value)" />
+      <label class="block text-[11px] themed-muted">Host</label>
+      <input class="w-full text-xs themed-input rounded px-2 py-1 mb-2" value="${n.props.host || 'demo.local'}" oninput="updateProp('host', this.value)" />
+      <label class="block text-[11px] themed-muted">Path</label>
+      <input class="w-full text-xs themed-input rounded px-2 py-1 mb-2" value="${n.props.path || '/'}" oninput="updateProp('path', this.value)" />
     ` : ''}
 
     ${n.type === 'ConfigMap' || n.type === 'Secret' ? `
-      <label class="block text-[11px] text-slate-600">Data (KEY=value per line)</label>
-      <textarea rows="4" class="w-full text-xs border border-slate-300 rounded px-2 py-1 mb-2 font-mono" oninput="updateData(this.value)">${Object.entries(n.props.data||{}).map(([k,v])=>`${k}=${v}`).join('\n')}</textarea>
+      <label class="block text-[11px] themed-muted">Data (KEY=value per line)</label>
+      <textarea rows="4" class="w-full text-xs themed-input rounded px-2 py-1 mb-2 font-mono" oninput="updateData(this.value)">${Object.entries(n.props.data||{}).map(([k,v])=>`${k}=${v}`).join('\n')}</textarea>
     ` : ''}
 
     <div class="flex gap-2 mt-3">
-      <button onclick="duplicateNode()" class="flex-1 text-xs bg-slate-200 hover:bg-slate-300 rounded py-1.5">Duplicate</button>
+      <button onclick="duplicateNode()" class="flex-1 text-xs bg-slate-200 hover:bg-slate-300 text-slate-800 rounded py-1.5">Duplicate</button>
       <button onclick="deleteNode()" class="flex-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded py-1.5">Delete</button>
     </div>
   `;
@@ -813,12 +949,12 @@ function showModal(title, bodyHtml, wide=false) {
   const root = document.getElementById('modalRoot');
   root.innerHTML = `
     <div class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4" onclick="if(event.target===this)closeModal()">
-      <div class="bg-white rounded-xl shadow-2xl ${wide?'max-w-5xl':'max-w-2xl'} w-full max-h-[90vh] flex flex-col">
-        <div class="flex items-center justify-between px-5 py-3 border-b border-slate-200">
-          <h3 class="text-lg font-semibold">${title}</h3>
-          <button onclick="closeModal()" class="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
+      <div class="modal-body-themed rounded-xl shadow-2xl ${wide?'max-w-5xl':'max-w-2xl'} w-full max-h-[90vh] flex flex-col border themed-border">
+        <div class="flex items-center justify-between px-5 py-3 border-b themed-border">
+          <h3 class="text-lg font-semibold themed-text">${title}</h3>
+          <button onclick="closeModal()" class="themed-dim hover:text-red-500 text-2xl leading-none">×</button>
         </div>
-        <div class="p-5 overflow-y-auto scrollbar">${bodyHtml}</div>
+        <div class="p-5 overflow-y-auto scrollbar themed-text">${bodyHtml}</div>
       </div>
     </div>
   `;
@@ -984,16 +1120,16 @@ const HELM_TEMPLATES = [
 
 function openHelmModal() {
   showModal('⎈ Helm Templates', `
-    <p class="text-xs text-slate-500 mb-4">Pick a canonical Helm chart to drop its resources onto the canvas. These mirror what <code>helm template &lt;chart&gt;</code> would produce for the core objects.</p>
+    <p class="text-xs themed-muted mb-4">Pick a canonical Helm chart to drop its resources onto the canvas. These mirror what <code>helm template &lt;chart&gt;</code> would produce for the core objects.</p>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
       ${HELM_TEMPLATES.map(t => `
-        <div class="border border-slate-200 rounded-lg p-3 hover:border-indigo-400 hover:shadow-md transition cursor-pointer" onclick="loadHelmTemplate('${t.id}')">
+        <div class="border themed-border rounded-lg p-3 hover:border-indigo-400 hover:shadow-md transition cursor-pointer" onclick="loadHelmTemplate('${t.id}')">
           <div class="flex items-center gap-2 mb-1">
-            <span class="text-indigo-600 text-xl">⎈</span>
-            <span class="font-semibold text-slate-900">${t.name}</span>
+            <span class="text-indigo-500 text-xl">⎈</span>
+            <span class="font-semibold themed-text">${t.name}</span>
           </div>
-          <div class="text-[11px] text-slate-500 font-mono mb-1">${t.repo}</div>
-          <div class="text-xs text-slate-600">${t.desc}</div>
+          <div class="text-[11px] themed-dim font-mono mb-1">${t.repo}</div>
+          <div class="text-xs themed-muted">${t.desc}</div>
         </div>
       `).join('')}
     </div>
@@ -1083,16 +1219,16 @@ const EXAMPLE_APPS = [
 
 function openExampleModal() {
   showModal('📦 Example App Solutions', `
-    <p class="text-xs text-slate-500 mb-4">Pre-wired reference architectures. Loading one replaces the current canvas.</p>
+    <p class="text-xs themed-muted mb-4">Pre-wired reference architectures. Loading one replaces the current canvas.</p>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
       ${EXAMPLE_APPS.map(a => `
-        <div class="border border-slate-200 rounded-lg p-3 hover:border-purple-400 hover:shadow-md transition cursor-pointer" onclick="loadExample('${a.id}')">
+        <div class="border themed-border rounded-lg p-3 hover:border-purple-400 hover:shadow-md transition cursor-pointer" onclick="loadExample('${a.id}')">
           <div class="flex items-center gap-2 mb-1">
-            <span class="text-purple-600 text-xl">📦</span>
-            <span class="font-semibold text-slate-900">${a.name}</span>
+            <span class="text-purple-500 text-xl">📦</span>
+            <span class="font-semibold themed-text">${a.name}</span>
           </div>
-          <div class="text-xs text-slate-600">${a.desc}</div>
-          <div class="text-[11px] text-slate-400 mt-1">${a.nodes.length} resources · ${a.connections.length} connections</div>
+          <div class="text-xs themed-muted">${a.desc}</div>
+          <div class="text-[11px] themed-dim mt-1">${a.nodes.length} resources · ${a.connections.length} connections</div>
         </div>
       `).join('')}
     </div>
@@ -1140,6 +1276,579 @@ function toast(msg, kind='info') {
   document.getElementById('toastRoot').appendChild(el);
   setTimeout(() => { el.style.opacity='0'; el.style.transition='opacity .3s'; }, 2200);
   setTimeout(() => el.remove(), 2600);
+}
+
+// -------------------------- THEME TOGGLE --------------------------
+function toggleTheme() {
+  const cur = document.body.getAttribute('data-theme') || 'light';
+  const next = cur === 'light' ? 'dark' : 'light';
+  document.body.setAttribute('data-theme', next);
+  document.getElementById('themeBtn').textContent = next === 'light' ? '🌙' : '☀';
+  try { localStorage.setItem('k8s-studio-theme', next); } catch {}
+}
+(function initTheme() {
+  try {
+    const saved = localStorage.getItem('k8s-studio-theme');
+    if (saved) {
+      document.body.setAttribute('data-theme', saved);
+      const btn = document.getElementById('themeBtn');
+      if (btn) btn.textContent = saved === 'light' ? '🌙' : '☀';
+    }
+  } catch {}
+})();
+
+// -------------------------- K8s RESOURCE EXPLANATIONS --------------------------
+const K8S_INFO = {
+  Pod: {
+    title: 'Pod',
+    what: 'The smallest deployable unit in Kubernetes. A Pod wraps one or more containers that share network (same IP, same localhost) and storage.',
+    role: 'Pods are where your actual container workload runs. Every container in K8s lives inside a Pod. You rarely create Pods directly — you let a controller (Deployment, StatefulSet, DaemonSet) manage them for you.',
+    relates: ['Managed by Deployment / StatefulSet / DaemonSet / Job', 'Selected by Services via labels', 'Mounts ConfigMap / Secret / PVC', 'Scheduled by the kube-scheduler onto a Node'],
+    failover: 'A bare Pod has NO failover — if the node dies, the Pod dies. That\'s why you use a Deployment: the Deployment controller constantly reconciles "actual pods" against "desired replicas" and recreates lost pods on healthy nodes. Liveness probes restart crashed containers; readiness probes pull unhealthy pods out of Service rotation.',
+    docs: 'kubernetes.io/docs/concepts/workloads/pods/',
+  },
+  Deployment: {
+    title: 'Deployment',
+    what: 'A controller that manages a ReplicaSet, which in turn manages a set of identical (stateless) Pods. The workhorse of K8s — 90% of workloads are Deployments.',
+    role: 'You declare "I want 3 replicas of this image" and the Deployment ensures 3 are always running. It also handles rolling updates: new version pods come up while old ones drain, zero downtime.',
+    relates: ['Creates and manages ReplicaSets → Pods', 'Exposed by a Service', 'Scaled by HorizontalPodAutoscaler (HPA)', 'Configured via ConfigMap / Secret env vars'],
+    failover: 'Gold standard failover. If a Pod crashes → ReplicaSet spins up a new one. If a Node dies → pods get rescheduled elsewhere (takes ~5 min by default due to node-not-ready timeout). Use PodDisruptionBudgets to guarantee minimum available during voluntary disruptions, and topologySpreadConstraints to spread replicas across zones/nodes so a single failure can\'t take down all replicas.',
+    docs: 'kubernetes.io/docs/concepts/workloads/controllers/deployment/',
+  },
+  StatefulSet: {
+    title: 'StatefulSet',
+    what: 'Like a Deployment but for stateful apps: each Pod gets a stable identity (name, hostname, persistent volume) that survives rescheduling.',
+    role: 'Used for databases, message queues, and anything that cares about "which replica am I?" Pods are created in order (pod-0, pod-1, pod-2) and each gets its own PersistentVolumeClaim.',
+    relates: ['Requires a Headless Service for stable DNS (pod-0.svc.ns.svc.cluster.local)', 'Each replica gets its own PVC via volumeClaimTemplates', 'Often paired with a PodDisruptionBudget'],
+    failover: 'Trickier than Deployments because state matters. If pod-0 dies, K8s creates a new pod-0 on another node and reattaches the SAME PVC — so data survives. But: you need network-attached storage (not local disk) for this to actually work across nodes. For true HA databases use operators (CloudNativePG, Percona, etc.) that handle replication, leader election, and failover on top of the StatefulSet.',
+    docs: 'kubernetes.io/docs/concepts/workloads/controllers/statefulset/',
+  },
+  DaemonSet: {
+    title: 'DaemonSet',
+    what: 'Runs exactly one copy of a Pod on every node in the cluster (or a subset via node selectors).',
+    role: 'Perfect for per-node agents: log collectors (Fluent Bit, Filebeat), metrics exporters (Node Exporter), CNI networking, security scanners, storage daemons.',
+    relates: ['Not exposed via Service typically — accessed via node-local port or localhost from other pods', 'Tolerates node taints to run everywhere, even on control plane'],
+    failover: 'Self-healing per node: if the DaemonSet pod on node-5 crashes, a new one is created on node-5. If node-5 itself dies, the pod just disappears (because there\'s no node to run it on) — when a replacement node joins, the DaemonSet controller places a new pod there automatically.',
+    docs: 'kubernetes.io/docs/concepts/workloads/controllers/daemonset/',
+  },
+  Job: {
+    title: 'Job',
+    what: 'Runs a Pod (or several) until successful completion, then stops. Unlike Deployments, Jobs are finite work.',
+    role: 'Batch processing: database migrations, data imports, report generation, ML training runs, backup tasks.',
+    relates: ['Can have parallelism (run N pods at once) and completions (run M total)', 'Often triggered by CronJob for scheduled work', 'Pods terminate on success; failed pods are retried up to backoffLimit'],
+    failover: 'Job controller retries failed pods automatically until backoffLimit is hit. For idempotent work this is perfect. For non-idempotent work (sending emails, charging cards), make sure the job itself is safe to re-run or use exactly-once patterns with external locks.',
+    docs: 'kubernetes.io/docs/concepts/workloads/controllers/job/',
+  },
+  CronJob: {
+    title: 'CronJob',
+    what: 'A Job on a cron schedule. Creates a new Job at each scheduled time.',
+    role: 'Recurring tasks: nightly backups, hourly data syncs, cleanup tasks, scheduled reports.',
+    relates: ['Creates Jobs → which create Pods', 'schedule field uses standard cron syntax', 'concurrencyPolicy controls overlapping runs (Allow / Forbid / Replace)'],
+    failover: 'If a scheduled time is missed (e.g. cluster was down), startingDeadlineSeconds decides whether to run it late or skip. Use Forbid policy for non-overlappable jobs. If a Job fails, the underlying Job\'s backoffLimit applies.',
+    docs: 'kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/',
+  },
+  Service: {
+    title: 'Service',
+    what: 'A stable virtual IP and DNS name that load-balances traffic to a set of Pods selected by labels.',
+    role: 'Pods are ephemeral — their IPs change every restart. Services give you one stable endpoint like http://my-api.default.svc.cluster.local that always points at healthy pods.',
+    relates: ['Selects pods via matchLabels → spec.selector', 'Types: ClusterIP (internal), NodePort (exposes on every node), LoadBalancer (provisions cloud LB), ExternalName (DNS alias)', 'Exposed externally by an Ingress'],
+    failover: 'kube-proxy programs iptables/IPVS rules on every node so traffic to the Service IP is distributed across all ready pods. When a pod fails its readiness probe, it\'s removed from the rotation within seconds. Services themselves don\'t "fail" — they\'re just rules on nodes. As long as SOME matching pod is ready, traffic keeps flowing.',
+    docs: 'kubernetes.io/docs/concepts/services-networking/service/',
+  },
+  Ingress: {
+    title: 'Ingress',
+    what: 'Layer-7 (HTTP/HTTPS) routing rules: host + path → Service. Lets you expose many services under one external IP with TLS termination.',
+    role: 'Without Ingress you\'d need one LoadBalancer per service (expensive!). With Ingress: one LB, one IP, and rules like "api.example.com → api-svc, www.example.com → web-svc".',
+    relates: ['Requires an Ingress Controller (nginx-ingress, Traefik, HAProxy) — the thing that actually reads Ingress resources and configures a reverse proxy', 'Points to a Service, which points to Pods', 'Handles TLS via Secret (usually cert-manager auto-provisions from Let\'s Encrypt)'],
+    failover: 'The Ingress resource itself is just config. The Ingress Controller pods are what matter — run multiple replicas across nodes. On kind, the controller runs as a Deployment with hostPort, so if the node dies the controller dies with it. In production you\'d run ingress controllers as DaemonSets or with HPA, fronted by an external load balancer.',
+    docs: 'kubernetes.io/docs/concepts/services-networking/ingress/',
+  },
+  Egress: {
+    title: 'Egress (NetworkPolicy)',
+    what: 'Rules controlling OUTBOUND traffic from pods. Implemented as a NetworkPolicy with egress rules.',
+    role: 'Security baseline. By default pods can talk to anything on the internet; egress policies lock that down ("pods in namespace X can only reach database.internal and api.stripe.com").',
+    relates: ['Requires a CNI that supports NetworkPolicies (Calico, Cilium — flannel does NOT)', 'Applied to pods via podSelector', 'Complements Ingress policies for full lockdown'],
+    failover: 'Policies are enforced by the CNI on every node. If the CNI agent on a node crashes, existing flows usually continue but new connections may fail — another reason to use a battle-tested CNI like Cilium with HA mode.',
+    docs: 'kubernetes.io/docs/concepts/services-networking/network-policies/',
+  },
+  NetworkPolicy: {
+    title: 'NetworkPolicy',
+    what: 'Pod-level firewall. Declares which other pods, namespaces, or IP blocks can talk to a group of pods (ingress) and where those pods can reach (egress).',
+    role: 'Zero-trust networking inside the cluster. Without NetworkPolicies, any pod can hit any other pod — a single compromised container has full lateral movement.',
+    relates: ['Needs a CNI that supports them (Cilium, Calico, Weave — not flannel)', 'Stackable: multiple policies on the same pod are additive', 'A "default deny" policy is a common baseline'],
+    failover: 'Same as Egress — enforced by the CNI datapath on each node. Test policies with tools like `kubectl exec` curl or cilium-cli to verify they do what you think.',
+    docs: 'kubernetes.io/docs/concepts/services-networking/network-policies/',
+  },
+  ConfigMap: {
+    title: 'ConfigMap',
+    what: 'Key-value storage for non-sensitive config (environment variables, config files, CLI flags).',
+    role: 'Decouples config from container images. Same image → dev/staging/prod by swapping ConfigMaps. Mountable as env vars OR as files in a volume.',
+    relates: ['Mounted by Pods via envFrom or volumes', 'Updates to ConfigMap are eventually visible in mounted volumes (~60s), but env vars require pod restart', 'Namespace-scoped'],
+    failover: 'Stored in etcd (the cluster\'s backing store). As long as etcd is healthy, ConfigMaps are durable. If you\'re paranoid, version your ConfigMaps in Git (GitOps) and let Argo CD / Flux reconcile them.',
+    docs: 'kubernetes.io/docs/concepts/configuration/configmap/',
+  },
+  Secret: {
+    title: 'Secret',
+    what: 'Like ConfigMap, but for sensitive data (passwords, tokens, TLS certs). Base64-encoded at rest in etcd (not encrypted by default unless you enable encryption-at-rest).',
+    role: 'Inject DB passwords, API keys, TLS certs into Pods without baking them into images or env files.',
+    relates: ['Mounted same way as ConfigMaps', 'For real secrets management use External Secrets Operator + Vault/AWS Secrets Manager', 'TLS Secrets are referenced by Ingress for HTTPS'],
+    failover: 'Lives in etcd. Enable etcd encryption-at-rest in production. For HA, use external secret stores so the source of truth isn\'t tied to a single cluster.',
+    docs: 'kubernetes.io/docs/concepts/configuration/secret/',
+  },
+  PersistentVolumeClaim: {
+    title: 'PersistentVolumeClaim (PVC)',
+    what: 'A request for storage. Pods mount PVCs like local disks, but the storage itself is provisioned (usually dynamically) from the cluster\'s StorageClass.',
+    role: 'Gives stateful pods durable disks that survive pod restarts and rescheduling.',
+    relates: ['Bound to a PersistentVolume (PV) — which may be cloud disk, NFS, iSCSI, Ceph, etc.', 'Used by StatefulSets via volumeClaimTemplates', 'StorageClass decides the provisioner and parameters'],
+    failover: 'Depends on the underlying storage. Local-disk PVs are tied to one node — if that node dies, the PVC cannot reattach elsewhere. Cloud disks (EBS, Azure Disk, GCE PD) can detach/reattach across nodes in the same zone but not across zones. For cross-zone HA use replicated storage (Longhorn, Rook/Ceph, Portworx) or app-level replication.',
+    docs: 'kubernetes.io/docs/concepts/storage/persistent-volumes/',
+  },
+  WebFrontend: {
+    title: 'Web Frontend (Deployment pattern)',
+    what: 'Stateless HTTP server serving HTML/CSS/JS — typically nginx, Apache, or a Node SSR server. Modeled as a Deployment in K8s.',
+    role: 'The entry point users hit. Usually behind an Ingress and backed by 2+ replicas for HA.',
+    relates: ['Deployment → Pods → Service → Ingress', 'Config via ConfigMap (nginx.conf)', 'TLS via cert-manager + Secret'],
+    failover: 'Because it\'s stateless, failover is trivial: run ≥2 replicas across nodes with topologySpreadConstraints, use a readiness probe (e.g. GET /healthz), and let the Service drop unhealthy pods. Add an HPA to auto-scale under load.',
+  },
+  APIServer: {
+    title: 'API Server (Deployment pattern)',
+    what: 'Stateless REST/GraphQL API backend. Modeled as a Deployment.',
+    role: 'Business logic tier between frontend and datastore. Should be stateless so any replica can serve any request.',
+    relates: ['Talks to Database / Cache / MessageQueue via Services', 'Configured via ConfigMap + Secret (DB URLs, API keys)', 'Exposed via Service, optionally Ingress if public'],
+    failover: 'Run ≥2 replicas, use graceful shutdown (SIGTERM → drain inflight requests → exit within terminationGracePeriodSeconds). Keep sessions in Redis (not in-memory) so any replica can handle any request. Circuit-break downstream DB calls so a slow DB doesn\'t take down all API pods.',
+  },
+  AppServer: {
+    title: 'App Server / Worker',
+    what: 'Background workers or application servers that process queues, run scheduled tasks, or handle long-running jobs.',
+    role: 'The "async" half of your app. Pulls from a queue, does work, writes to DB.',
+    relates: ['Often consumes from MessageQueue (RabbitMQ/Kafka)', 'Writes to Database / DocStore', 'Scaled by HPA based on queue depth via KEDA'],
+    failover: 'Because workers pull from a queue, failover is inherent: if a worker dies mid-message, the queue redelivers (at-least-once). Make handlers idempotent! Use KEDA to scale workers from 0 to N based on queue lag.',
+  },
+  Database: {
+    title: 'Database (StatefulSet pattern)',
+    what: 'Relational database (PostgreSQL, MySQL) running in K8s as a StatefulSet with a PVC per replica.',
+    role: 'System of record. The most stateful, most painful thing to run in K8s.',
+    relates: ['StatefulSet + Headless Service + PVC', 'Password via Secret', 'Schema init via Job or initContainer', 'Backups via CronJob'],
+    failover: 'DO NOT run production databases with just a StatefulSet. Use an operator: CloudNativePG or Zalando for Postgres, Percona or Vitess for MySQL. These handle leader election, streaming replication, automatic failover, and backups. The StatefulSet alone only guarantees "same pod identity after reschedule" — it does NOT give you HA replication.',
+    docs: 'cloudnative-pg.io / percona.com/mysql/software/percona-operator',
+  },
+  DocStore: {
+    title: 'Document Store (MongoDB/CouchDB)',
+    what: 'NoSQL document database running as a StatefulSet.',
+    role: 'Flexible-schema storage for document-shaped data.',
+    relates: ['StatefulSet with replica set config', 'PVC per member', 'Exposed via Headless Service'],
+    failover: 'MongoDB has built-in replica sets with automatic primary election — running 3+ members across nodes gives you automatic failover. Use the MongoDB Community/Enterprise Operator to manage the lifecycle. Without an operator, upgrades and scaling become dangerous.',
+  },
+  Cache: {
+    title: 'Cache (Redis/Memcached)',
+    what: 'In-memory key-value store used for caching, sessions, rate limiting, and pub/sub.',
+    role: 'Offloads read pressure from the database and enables fast shared state across stateless API replicas.',
+    relates: ['StatefulSet for Redis (persistence), Deployment for Memcached (ephemeral)', 'Exposed via Service', 'Auth via Secret'],
+    failover: 'Single-node Redis = single point of failure. For HA: Redis Sentinel (automatic primary failover) or Redis Cluster (sharded + replicated). Use the Redis Operator or Bitnami chart. Memcached is trivially HA — just run multiple replicas, clients shard across them, and losing one just loses that shard\'s cache (which rebuilds).',
+  },
+  MessageQueue: {
+    title: 'Message Queue (RabbitMQ/Kafka)',
+    what: 'Durable message broker that decouples producers from consumers.',
+    role: 'Async work distribution, event streaming, inter-service communication.',
+    relates: ['StatefulSet with PVC for durability', 'Needs a Headless Service for peer discovery in clustering', 'Producers = APIs, Consumers = AppServers/Workers'],
+    failover: 'Cluster the broker across 3+ replicas on different nodes. RabbitMQ has quorum queues (Raft-based), Kafka replicates partitions across brokers. USE THE OPERATOR: RabbitMQ Cluster Operator, Strimzi for Kafka. Without clustering, a single pod restart loses in-flight messages.',
+  },
+};
+
+function openExplainModal(type) {
+  const info = K8S_INFO[type];
+  if (!info) {
+    showModal(type, `<p class="text-sm themed-muted">No detailed explanation available for ${type} yet.</p>`);
+    return;
+  }
+  const docsLink = info.docs ? `<p class="text-[11px] themed-dim mt-3">📚 <a href="https://${info.docs}" target="_blank" class="text-blue-500 hover:underline">${info.docs}</a></p>` : '';
+  showModal(`ℹ ${info.title}`, `
+    <div class="info-section">
+      <h4>🔍 What it is</h4>
+      <p>${info.what}</p>
+
+      <h4>🎯 Its role in K8s</h4>
+      <p>${info.role}</p>
+
+      <h4>🔗 How it relates to other resources</h4>
+      <ul>${info.relates.map(r => `<li>${r}</li>`).join('')}</ul>
+
+      <h4>💥 How failover is handled</h4>
+      <p>${info.failover}</p>
+      ${docsLink}
+    </div>
+  `);
+}
+
+// -------------------------- WIZARD --------------------------
+const WIZARD_SCENARIOS = [
+  {
+    id: 'static-html',
+    name: 'Static HTML Website',
+    desc: 'The simplest possible K8s deployment: nginx serving static files, reachable via NodePort.',
+    difficulty: '⭐ Beginner',
+    steps: [
+      {
+        title: 'Step 1 — Drop a Deployment',
+        body: 'We\'ll start with a <strong>Deployment</strong> running nginx. A Deployment manages a set of identical Pods and handles rolling updates and self-healing. For a static site, nginx just serves files from its default web root.',
+        action: { type: 'add', key: 'web', nodeType: 'WebFrontend', x: 300, y: 180, label: 'nginx-web', preset: 'web', props: { image: 'nginx:1.27-alpine', port: 80, replicas: 2 } },
+      },
+      {
+        title: 'Step 2 — Set 2 replicas',
+        body: 'Notice we set <code>replicas: 2</code>. Running 2 copies on different nodes means if one node dies, the Service keeps routing to the survivor while K8s schedules a replacement. <strong>Never run production with 1 replica.</strong>',
+        action: { type: 'update', key: 'web', props: { replicas: 2 } },
+      },
+      {
+        title: 'Step 3 — Add a ConfigMap for your HTML',
+        body: 'A <strong>ConfigMap</strong> holds your <code>index.html</code>. The Pod mounts it as a file at <code>/usr/share/nginx/html</code>. Swap the ConfigMap → instantly new content, no rebuild.',
+        action: { type: 'add', key: 'cm', nodeType: 'ConfigMap', x: 540, y: 180, label: 'site-content', props: { data: { 'index.html': '<h1>Hello K8s</h1>' } } },
+      },
+      {
+        title: 'Step 4 — Connect ConfigMap → Deployment',
+        body: 'Draw a line from the ConfigMap to the Deployment. In the generated YAML this becomes a volume mount. The Pod now reads its HTML from the ConfigMap.',
+        action: { type: 'connect', from: 'cm', to: 'web' },
+      },
+      {
+        title: 'Step 5 — Add a Service',
+        body: 'Pods come and go and their IPs change. A <strong>Service</strong> gives you a stable virtual IP and DNS name that load-balances across all matching Pods. We\'ll use <code>NodePort</code> so kind can map a host port to it.',
+        action: { type: 'add', key: 'svc', nodeType: 'Service', x: 780, y: 180, label: 'nginx-svc', props: { serviceType: 'NodePort', port: 80 } },
+      },
+      {
+        title: 'Step 6 — Connect Service → Deployment',
+        body: 'The Service selects Pods by label. Connecting them here tells the generator to set <code>spec.selector.app = nginx-web</code>. Now the Service load-balances to all 2 replicas.',
+        action: { type: 'connect', from: 'svc', to: 'web' },
+      },
+      {
+        title: 'Step 7 — Done! Export & deploy',
+        body: '🎉 That\'s a minimal static site. Click <strong>⬇ YAML</strong> in the top bar to see the generated manifest, then follow the <strong>🚀 Deploy</strong> instructions to apply it to kind. Visit <code>http://localhost:8080</code> after applying.',
+        action: { type: 'done' },
+      },
+    ],
+  },
+  {
+    id: 'three-tier',
+    name: '3-Tier Web Application',
+    desc: 'Classic web frontend + API backend + database with ingress and secrets.',
+    difficulty: '⭐⭐ Intermediate',
+    steps: [
+      {
+        title: 'Step 1 — Web frontend Deployment',
+        body: 'Start with the user-facing tier: a stateless web frontend (React/Angular/nginx). Stateless means any replica can handle any request, so we can scale horizontally.',
+        action: { type: 'add', key: 'web', nodeType: 'WebFrontend', x: 240, y: 360, label: 'web', preset: 'web', props: { replicas: 3 } },
+      },
+      {
+        title: 'Step 2 — Web Service',
+        body: 'Wrap the web pods in a <strong>ClusterIP Service</strong>. It\'s internal-only — the Ingress in the next step will expose it externally.',
+        action: { type: 'add', key: 'webSvc', nodeType: 'Service', x: 240, y: 200, label: 'web-svc', props: { serviceType: 'ClusterIP', port: 80 } },
+      },
+      {
+        title: 'Step 3 — Connect Service → Web',
+        body: 'The Service routes traffic to the web pods via label selectors.',
+        action: { type: 'connect', from: 'webSvc', to: 'web' },
+      },
+      {
+        title: 'Step 4 — Add an Ingress',
+        body: '<strong>Ingress</strong> is L7 HTTP routing. One Ingress + one IP can host many services via host/path rules, and terminate TLS. Requires an Ingress Controller (ingress-nginx) installed in the cluster.',
+        action: { type: 'add', key: 'ing', nodeType: 'Ingress', x: 240, y: 60, label: 'app-ingress', props: { host: 'app.local', path: '/' } },
+      },
+      {
+        title: 'Step 5 — Connect Ingress → Service',
+        body: 'The Ingress points at the web Service. External traffic now flows: Client → Ingress Controller → Service → Pod.',
+        action: { type: 'connect', from: 'ing', to: 'webSvc' },
+      },
+      {
+        title: 'Step 6 — API backend',
+        body: 'Now the middle tier: a stateless API server. The frontend calls it for dynamic data. Keep it stateless so you can scale it independently.',
+        action: { type: 'add', key: 'api', nodeType: 'APIServer', x: 540, y: 360, label: 'api', preset: 'api', props: { replicas: 3 } },
+      },
+      {
+        title: 'Step 7 — API Service',
+        body: 'Wrap the API pods in a ClusterIP Service. The web pods will call <code>http://api-svc.default.svc.cluster.local:3000</code>.',
+        action: { type: 'add', key: 'apiSvc', nodeType: 'Service', x: 540, y: 200, label: 'api-svc', props: { serviceType: 'ClusterIP', port: 3000 } },
+      },
+      {
+        title: 'Step 8 — Wire it up',
+        body: 'Connect the API Service to the API pods, and the web pods to the API Service (so we can visualize the call flow).',
+        action: { type: 'multi', actions: [
+          { type: 'connect', from: 'apiSvc', to: 'api' },
+          { type: 'connect', from: 'web', to: 'apiSvc' },
+        ]},
+      },
+      {
+        title: 'Step 9 — Secrets for DB credentials',
+        body: 'Never hardcode passwords. A <strong>Secret</strong> holds sensitive values and is mounted into the API pods as env vars.',
+        action: { type: 'add', key: 'sec', nodeType: 'Secret', x: 840, y: 200, label: 'db-credentials', props: { data: { DB_USER: 'app', DB_PASSWORD: 'change-me' } } },
+      },
+      {
+        title: 'Step 10 — Connect Secret → API',
+        body: 'The API pods now get DB_USER and DB_PASSWORD as environment variables.',
+        action: { type: 'connect', from: 'sec', to: 'api' },
+      },
+      {
+        title: 'Step 11 — Database (StatefulSet)',
+        body: 'The data tier is stateful, so we use a StatefulSet (not a Deployment). Each DB pod gets a stable identity and its own PVC.',
+        action: { type: 'add', key: 'db', nodeType: 'Database', x: 840, y: 360, label: 'postgres', preset: 'db' },
+      },
+      {
+        title: 'Step 12 — Database Service',
+        body: 'A ClusterIP Service (typically Headless for StatefulSets) gives pods stable DNS. The API connects to <code>postgres-svc</code>.',
+        action: { type: 'add', key: 'dbSvc', nodeType: 'Service', x: 840, y: 520, label: 'postgres-svc', props: { serviceType: 'ClusterIP', port: 5432 } },
+      },
+      {
+        title: 'Step 13 — Persistent storage',
+        body: 'A <strong>PVC</strong> requests durable storage. If the DB pod is rescheduled to another node, the PVC reattaches and data survives. For real HA you\'d use the CloudNativePG operator, not a bare StatefulSet.',
+        action: { type: 'add', key: 'pvc', nodeType: 'PersistentVolumeClaim', x: 1100, y: 360, label: 'postgres-data', props: { size: '10Gi' } },
+      },
+      {
+        title: 'Step 14 — Final wiring',
+        body: 'Connect the API to the DB Service, and the DB to its PVC. You now have a classic 3-tier architecture.',
+        action: { type: 'multi', actions: [
+          { type: 'connect', from: 'api', to: 'dbSvc' },
+          { type: 'connect', from: 'dbSvc', to: 'db' },
+          { type: 'connect', from: 'db', to: 'pvc' },
+        ]},
+      },
+      {
+        title: '🎉 Done!',
+        body: 'You\'ve designed a production-shaped 3-tier app. Click any node, then <strong>ℹ Explain</strong> in the inspector to learn failover strategies for each resource. Export YAML and apply to kind.',
+        action: { type: 'done' },
+      },
+    ],
+  },
+  {
+    id: 'microservices',
+    name: 'Microservices with Cache & Queue',
+    desc: 'Frontend + 2 APIs + Redis cache + Postgres + RabbitMQ background workers.',
+    difficulty: '⭐⭐⭐ Advanced',
+    steps: [
+      { title: 'Step 1 — Ingress entry point',
+        body: 'Start from the outside in: the Ingress is the front door.',
+        action: { type: 'add', key: 'ing', nodeType: 'Ingress', x: 200, y: 60, label: 'shop-ingress', props: { host: 'shop.local', path: '/' } } },
+      { title: 'Step 2 — Frontend Service + Pods',
+        body: 'A React SPA served by nginx. 3 replicas for HA.',
+        action: { type: 'multi', actions: [
+          { type: 'add', key: 'feSvc', nodeType: 'Service', x: 200, y: 200, label: 'frontend-svc', props: { serviceType: 'ClusterIP', port: 80 } },
+          { type: 'add', key: 'fe', nodeType: 'WebFrontend', x: 200, y: 360, label: 'frontend', preset: 'web', props: { replicas: 3 } },
+          { type: 'connect', from: 'ing', to: 'feSvc' },
+          { type: 'connect', from: 'feSvc', to: 'fe' },
+        ]} },
+      { title: 'Step 3 — Catalog microservice',
+        body: 'Each microservice is its own Deployment + Service. Catalog serves product data — read-heavy, so we\'ll add a cache in a later step.',
+        action: { type: 'multi', actions: [
+          { type: 'add', key: 'catSvc', nodeType: 'Service', x: 460, y: 200, label: 'catalog-svc', props: { serviceType: 'ClusterIP', port: 3000 } },
+          { type: 'add', key: 'cat', nodeType: 'APIServer', x: 460, y: 360, label: 'catalog-api', preset: 'api', props: { replicas: 2 } },
+          { type: 'connect', from: 'fe', to: 'catSvc' },
+          { type: 'connect', from: 'catSvc', to: 'cat' },
+        ]} },
+      { title: 'Step 4 — Orders microservice',
+        body: 'Separate service owns the orders domain — classic bounded context per DDD.',
+        action: { type: 'multi', actions: [
+          { type: 'add', key: 'ordSvc', nodeType: 'Service', x: 720, y: 200, label: 'orders-svc', props: { serviceType: 'ClusterIP', port: 3000 } },
+          { type: 'add', key: 'ord', nodeType: 'APIServer', x: 720, y: 360, label: 'orders-api', preset: 'api', props: { replicas: 2 } },
+          { type: 'connect', from: 'fe', to: 'ordSvc' },
+          { type: 'connect', from: 'ordSvc', to: 'ord' },
+        ]} },
+      { title: 'Step 5 — Redis cache',
+        body: 'Redis in front of the catalog DB to offload reads. For real HA use Redis Sentinel — bare StatefulSet is only fine for dev.',
+        action: { type: 'multi', actions: [
+          { type: 'add', key: 'redis', nodeType: 'Cache', x: 460, y: 540, label: 'redis', preset: 'cache' },
+          { type: 'connect', from: 'cat', to: 'redis' },
+        ]} },
+      { title: 'Step 6 — Orders database',
+        body: 'Postgres StatefulSet backing the orders service. Each microservice owns its own schema/database — never share!',
+        action: { type: 'multi', actions: [
+          { type: 'add', key: 'ordDb', nodeType: 'Database', x: 720, y: 540, label: 'orders-db', preset: 'db' },
+          { type: 'connect', from: 'ord', to: 'ordDb' },
+        ]} },
+      { title: 'Step 7 — RabbitMQ message broker',
+        body: 'Orders publishes "order-placed" events to RabbitMQ. Workers consume them async. Decouples fast user requests from slow fulfillment work.',
+        action: { type: 'multi', actions: [
+          { type: 'add', key: 'mq', nodeType: 'MessageQueue', x: 980, y: 360, label: 'rabbitmq', preset: 'mq' },
+          { type: 'connect', from: 'ord', to: 'mq' },
+        ]} },
+      { title: 'Step 8 — Background worker',
+        body: 'An AppServer Deployment consumes from the queue and processes orders (send email, charge card, update inventory). Scales independently via KEDA.',
+        action: { type: 'multi', actions: [
+          { type: 'add', key: 'worker', nodeType: 'AppServer', x: 980, y: 540, label: 'order-worker', preset: 'app', props: { replicas: 2 } },
+          { type: 'connect', from: 'mq', to: 'worker' },
+        ]} },
+      { title: 'Step 9 — Zero-trust networking',
+        body: 'Add a default-deny NetworkPolicy as a baseline. Then allow only the flows you\'ve drawn. This is how you stop lateral movement from a compromised pod.',
+        action: { type: 'add', key: 'np', nodeType: 'NetworkPolicy', x: 1240, y: 360, label: 'default-deny', props: {} } },
+      { title: '🎉 Microservices deployed!',
+        body: 'You now have a realistic microservices topology with caching, event-driven workers, and network isolation. Click any node → <strong>ℹ Explain</strong> for failover details per tier.',
+        action: { type: 'done' } },
+    ],
+  },
+  {
+    id: 'ha-database',
+    name: 'HA Database with Backups',
+    desc: 'StatefulSet database with PVC, Secret, and a CronJob for scheduled backups.',
+    difficulty: '⭐⭐ Intermediate',
+    steps: [
+      { title: 'Step 1 — StatefulSet for Postgres',
+        body: 'StatefulSet (not Deployment) because each DB replica needs stable identity and its own persistent disk.',
+        action: { type: 'add', key: 'db', nodeType: 'Database', x: 400, y: 300, label: 'postgres', preset: 'db' } },
+      { title: 'Step 2 — PVC for data',
+        body: 'Persistent storage that survives pod rescheduling. In production you\'d use a replicated StorageClass (Longhorn, Rook/Ceph) for cross-node durability.',
+        action: { type: 'multi', actions: [
+          { type: 'add', key: 'pvc', nodeType: 'PersistentVolumeClaim', x: 680, y: 300, label: 'postgres-data', props: { size: '20Gi' } },
+          { type: 'connect', from: 'db', to: 'pvc' },
+        ]} },
+      { title: 'Step 3 — Credentials Secret',
+        body: 'Passwords belong in Secrets, not in ConfigMaps or env files. Enable etcd encryption-at-rest in production.',
+        action: { type: 'multi', actions: [
+          { type: 'add', key: 'sec', nodeType: 'Secret', x: 400, y: 140, label: 'postgres-secret', props: { data: { POSTGRES_PASSWORD: 'change-me', POSTGRES_USER: 'app' } } },
+          { type: 'connect', from: 'sec', to: 'db' },
+        ]} },
+      { title: 'Step 4 — Headless Service',
+        body: 'StatefulSets pair with a Headless Service (clusterIP: None) so each replica gets stable DNS: pod-0.svc, pod-1.svc, etc.',
+        action: { type: 'multi', actions: [
+          { type: 'add', key: 'svc', nodeType: 'Service', x: 140, y: 300, label: 'postgres-svc', props: { serviceType: 'ClusterIP', port: 5432 } },
+          { type: 'connect', from: 'svc', to: 'db' },
+        ]} },
+      { title: 'Step 5 — Backup CronJob',
+        body: 'A CronJob that runs <code>pg_dump</code> nightly and uploads to S3. Modeled here as a scheduled Job. Real-world: use Velero or WAL-G.',
+        action: { type: 'multi', actions: [
+          { type: 'add', key: 'cron', nodeType: 'CronJob', x: 680, y: 140, label: 'nightly-backup', props: { image: 'postgres:16-alpine', replicas: 1 } },
+          { type: 'connect', from: 'cron', to: 'svc' },
+        ]} },
+      { title: 'Step 6 — NetworkPolicy lockdown',
+        body: 'Lock down the DB: only pods with label <code>role=backend</code> can reach port 5432. Blocks lateral movement from any other compromised pod.',
+        action: { type: 'add', key: 'np', nodeType: 'NetworkPolicy', x: 140, y: 140, label: 'db-access-policy', props: {} } },
+      { title: '⚠ Important: this is NOT production HA',
+        body: 'A bare StatefulSet gives you <strong>pod identity</strong> and <strong>storage persistence</strong>, but NOT database-level replication or automatic failover. For real HA use <strong>CloudNativePG</strong> or <strong>Zalando Postgres Operator</strong>. They manage streaming replication, leader election, and failover on top of StatefulSets. Click the Database node → ℹ Explain for details.',
+        action: { type: 'done' } },
+    ],
+  },
+];
+
+const wizardState = { scenario: null, step: 0, keyMap: {} };
+
+function openWizardModal() {
+  showModal('🪄 Deployment Wizard', `
+    <p class="text-sm themed-muted mb-4">Pick a scenario. The wizard will walk you through it step-by-step, dropping resources onto the canvas with explanations at each stage.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      ${WIZARD_SCENARIOS.map(s => `
+        <div class="border themed-border rounded-lg p-4 hover:border-amber-400 hover:shadow-md transition cursor-pointer" onclick="startWizard('${s.id}')">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-2xl">🪄</span>
+            <span class="font-semibold themed-text">${s.name}</span>
+          </div>
+          <div class="text-[11px] themed-dim mb-1">${s.difficulty} · ${s.steps.length} steps</div>
+          <div class="text-xs themed-muted">${s.desc}</div>
+        </div>
+      `).join('')}
+    </div>
+  `, true);
+}
+
+function startWizard(id) {
+  const s = WIZARD_SCENARIOS.find(x => x.id === id);
+  if (!s) return;
+  closeModal();
+  clearCanvasSilent();
+  wizardState.scenario = s;
+  wizardState.step = 0;
+  wizardState.keyMap = {};
+  document.getElementById('wizardPanel').classList.remove('hidden');
+  document.getElementById('wizardScenarioName').textContent = s.name;
+  runWizardStep();
+}
+
+function runWizardStep() {
+  const s = wizardState.scenario;
+  const step = s.steps[wizardState.step];
+  document.getElementById('wizardStepTitle').textContent = step.title;
+  document.getElementById('wizardStepBody').innerHTML = step.body;
+
+  // Progress dots
+  const dots = s.steps.map((_, i) =>
+    `<div class="wizard-progress-dot ${i < wizardState.step ? 'done' : i === wizardState.step ? 'current' : ''}"></div>`
+  ).join('');
+  document.getElementById('wizardDots').innerHTML = dots;
+
+  // Execute the action
+  executeWizardAction(step.action);
+
+  // Update button labels
+  document.getElementById('wizardBack').disabled = wizardState.step === 0;
+  document.getElementById('wizardBack').style.opacity = wizardState.step === 0 ? '0.4' : '1';
+  const isLast = wizardState.step === s.steps.length - 1;
+  document.getElementById('wizardNext').textContent = isLast ? '✓ Finish' : 'Next →';
+}
+
+function executeWizardAction(action) {
+  if (!action) return;
+  if (action.type === 'add') {
+    const n = addNode(action.nodeType, action.x, action.y, action.preset, {
+      label: action.label,
+      props: action.props ? { ...action.props, name: action.label } : {},
+    });
+    wizardState.keyMap[action.key] = n.id;
+    n.el.classList.add('wizard-new');
+    setTimeout(() => n.el.classList.remove('wizard-new'), 600);
+    // scroll into view
+    n.el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+  } else if (action.type === 'update') {
+    const id = wizardState.keyMap[action.key];
+    if (id && state.nodes[id]) {
+      Object.assign(state.nodes[id].props, action.props);
+      if (state.selected === id) renderInspector();
+    }
+  } else if (action.type === 'connect') {
+    const from = wizardState.keyMap[action.from];
+    const to = wizardState.keyMap[action.to];
+    if (from && to) {
+      addConnection(from, to);
+      // highlight the newest connection line
+      setTimeout(() => {
+        const paths = document.querySelectorAll('#connections path');
+        if (paths.length) {
+          const last = paths[paths.length - 1];
+          last.classList.add('wizard-new');
+          setTimeout(() => last.classList.remove('wizard-new'), 600);
+        }
+      }, 20);
+    }
+  } else if (action.type === 'multi') {
+    action.actions.forEach(a => executeWizardAction(a));
+  } else if (action.type === 'done') {
+    // nothing on the canvas, just narrative
+  }
+}
+
+function wizardNext() {
+  const s = wizardState.scenario;
+  if (wizardState.step < s.steps.length - 1) {
+    wizardState.step++;
+    runWizardStep();
+  } else {
+    closeWizard();
+    toast(`Wizard complete: ${s.name}`, 'success');
+  }
+}
+
+function wizardBack() {
+  if (wizardState.step > 0) {
+    // Rebuild from scratch up to previous step
+    const s = wizardState.scenario;
+    clearCanvasSilent();
+    wizardState.keyMap = {};
+    const targetStep = wizardState.step - 1;
+    for (let i = 0; i <= targetStep; i++) {
+      executeWizardAction(s.steps[i].action);
+    }
+    wizardState.step = targetStep;
+    runWizardStep();
+  }
+}
+
+function closeWizard() {
+  document.getElementById('wizardPanel').classList.add('hidden');
+  wizardState.scenario = null;
+  wizardState.step = 0;
+  wizardState.keyMap = {};
 }
 
 // -------------------------- INIT --------------------------
