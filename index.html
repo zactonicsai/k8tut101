@@ -27,6 +27,9 @@
       <a href="#explanations" class="hover:text-blue-600">Explanations</a>
       <a href="#helm-tools" class="hover:text-blue-600">Helm &amp; Tools</a>
       <a href="#scenarios" class="hover:text-blue-600">Scenarios</a>
+      <a href="#gitops" class="hover:text-blue-600">GitOps</a>
+      <a href="#production" class="hover:text-blue-600">Production</a>
+      <a href="#rancher" class="hover:text-blue-600">Rancher</a>
       <a href="#resources" class="hover:text-blue-600">Resources</a>
     </div>
   </div>
@@ -905,9 +908,505 @@ helm install myapp ./charts/myapp \
   </div>
 </section>
 
+<!-- PART 6: OBSERVABILITY, SECURITY & PRODUCTION READINESS -->
+<section id="production" class="mb-16">
+  <h2 class="text-3xl font-bold text-slate-900 mb-2">Part 6 · Observability, Security &amp; Production Readiness</h2>
+  <p class="text-slate-600 mb-8">Deploying an app is step one. Keeping it healthy, secure, and observable is where real operations begin.</p>
+
+  <!-- HERO CARD -->
+  <div class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-2xl p-8 mb-8 shadow-lg">
+    <div class="flex items-start gap-4">
+      <div class="text-5xl">📊</div>
+      <div class="flex-1">
+        <h3 class="text-2xl font-bold mb-2">"You can't fix what you can't see"</h3>
+        <p class="text-emerald-100 mb-4">
+          Observability is the trio of <strong>metrics</strong> (numbers over time), <strong>logs</strong> (what happened),
+          and <strong>traces</strong> (how a request flowed). Security is RBAC, NetworkPolicies, and Secrets.
+          Production-readiness is resource limits, autoscaling, backups, and health checks. This section covers all of it.
+        </p>
+        <div class="flex flex-wrap gap-2">
+          <span class="px-3 py-1 bg-white/20 rounded-full text-xs">Prometheus</span>
+          <span class="px-3 py-1 bg-white/20 rounded-full text-xs">Grafana</span>
+          <span class="px-3 py-1 bg-white/20 rounded-full text-xs">Loki</span>
+          <span class="px-3 py-1 bg-white/20 rounded-full text-xs">RBAC</span>
+          <span class="px-3 py-1 bg-white/20 rounded-full text-xs">NetworkPolicy</span>
+          <span class="px-3 py-1 bg-white/20 rounded-full text-xs">HPA</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OBSERVABILITY TOOLS GRID -->
+  <h3 class="text-2xl font-bold text-slate-900 mb-4">🔭 Observability Stack</h3>
+  <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🔥</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Prometheus</h4>
+      <p class="text-xs text-slate-600 mb-3">The de-facto K8s metrics database. Pull-based: it scrapes /metrics endpoints from your pods every 15s and stores time-series data.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://prometheus.io" target="_blank" class="text-blue-600 text-xs hover:underline">prometheus.io →</a>
+        <button onclick="openModal('deep-prometheus')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">📈</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Grafana</h4>
+      <p class="text-xs text-slate-600 mb-3">Visualization layer on top of Prometheus/Loki/etc. Dashboards, alerts, annotations. The "face" of most observability stacks.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://grafana.com" target="_blank" class="text-blue-600 text-xs hover:underline">grafana.com →</a>
+        <button onclick="openModal('deep-grafana')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">📜</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Loki</h4>
+      <p class="text-xs text-slate-600 mb-3">"Prometheus for logs." Indexes only labels, not content — so it's dramatically cheaper than Elasticsearch.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://grafana.com/oss/loki/" target="_blank" class="text-blue-600 text-xs hover:underline">grafana loki →</a>
+        <button onclick="openModal('deep-loki')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🔍</div>
+      <h4 class="font-semibold text-slate-900 mb-1">OpenTelemetry</h4>
+      <p class="text-xs text-slate-600 mb-3">Vendor-neutral standard for metrics, logs, and traces. Instrument once, send anywhere (Jaeger, Tempo, Datadog, etc).</p>
+      <div class="flex justify-between items-center">
+        <a href="https://opentelemetry.io" target="_blank" class="text-blue-600 text-xs hover:underline">opentelemetry.io →</a>
+        <button onclick="openModal('deep-otel')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🧭</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Jaeger / Tempo</h4>
+      <p class="text-xs text-slate-600 mb-3">Distributed tracing backends. See how a single request flows across 20 microservices and where it slowed down.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://www.jaegertracing.io" target="_blank" class="text-blue-600 text-xs hover:underline">jaegertracing.io →</a>
+        <button onclick="openModal('deep-jaeger')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🚨</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Alertmanager</h4>
+      <p class="text-xs text-slate-600 mb-3">Routes Prometheus alerts to Slack, PagerDuty, email, etc. Groups, deduplicates, and silences alerts intelligently.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://prometheus.io/docs/alerting/latest/alertmanager/" target="_blank" class="text-blue-600 text-xs hover:underline">alertmanager →</a>
+        <button onclick="openModal('deep-alertmanager')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUICK INSTALL -->
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-10">
+    <h3 class="text-lg font-semibold mb-3">Install the full stack in your kind cluster</h3>
+    <p class="text-slate-600 text-sm mb-3">The kube-prometheus-stack Helm chart gives you Prometheus, Grafana, Alertmanager, node-exporter, and a ton of pre-built dashboards in one command.</p>
+    <pre class="bg-slate-900 text-green-300 p-4 rounded-lg text-xs overflow-x-auto">helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+# Install everything in a monitoring namespace
+helm install kps prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --create-namespace
+
+# Port-forward Grafana (default: admin / prom-operator)
+kubectl port-forward -n monitoring svc/kps-grafana 3000:80
+
+# Port-forward Prometheus
+kubectl port-forward -n monitoring svc/kps-kube-prometheus-stack-prometheus 9090:9090
+
+# Add Loki for logs
+helm install loki grafana/loki-stack --namespace monitoring</pre>
+  </div>
+
+  <!-- SECURITY SECTION -->
+  <h3 class="text-2xl font-bold text-slate-900 mb-4">🔐 Security Basics</h3>
+  <div class="grid md:grid-cols-2 gap-5 mb-10">
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-2xl">🎫</span>
+        <h4 class="font-semibold text-slate-900">RBAC (Role-Based Access Control)</h4>
+      </div>
+      <p class="text-sm text-slate-600 mb-3">Controls who can do what in your cluster. Users, groups, and ServiceAccounts get bound to Roles (namespaced) or ClusterRoles (cluster-wide). Principle of least privilege.</p>
+      <pre class="bg-slate-900 text-blue-200 p-3 rounded text-xs overflow-x-auto">apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-reader
+  namespace: default
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]</pre>
+      <div class="flex justify-between items-center mt-3">
+        <a href="https://kubernetes.io/docs/reference/access-authn-authz/rbac/" target="_blank" class="text-blue-600 text-xs hover:underline">📖 RBAC docs →</a>
+        <button onclick="openModal('deep-rbac')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-2xl">🛡️</span>
+        <h4 class="font-semibold text-slate-900">NetworkPolicy</h4>
+      </div>
+      <p class="text-sm text-slate-600 mb-3">Pod-level firewall rules. By default, every pod can talk to every other pod — NetworkPolicies let you say "only the API pods can reach the DB pod."</p>
+      <pre class="bg-slate-900 text-blue-200 p-3 rounded text-xs overflow-x-auto">apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: db-allow-api
+spec:
+  podSelector:
+    matchLabels: { app: postgres }
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: { app: api }</pre>
+      <div class="flex justify-between items-center mt-3">
+        <a href="https://kubernetes.io/docs/concepts/services-networking/network-policies/" target="_blank" class="text-blue-600 text-xs hover:underline">📖 NetworkPolicy →</a>
+        <button onclick="openModal('deep-netpol')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-2xl">🔑</span>
+        <h4 class="font-semibold text-slate-900">Secrets &amp; External Secrets</h4>
+      </div>
+      <p class="text-sm text-slate-600 mb-3">K8s Secrets store passwords/tokens (base64-encoded, not encrypted by default!). In production, pair with Sealed Secrets, External Secrets Operator, or HashiCorp Vault.</p>
+      <pre class="bg-slate-900 text-green-300 p-3 rounded text-xs overflow-x-auto">kubectl create secret generic db-creds \
+  --from-literal=username=admin \
+  --from-literal=password='s3cret!'
+
+# Better: External Secrets Operator pulls from Vault/AWS SM
+kubectl apply -f external-secret.yaml</pre>
+      <div class="flex justify-between items-center mt-3">
+        <a href="https://external-secrets.io" target="_blank" class="text-blue-600 text-xs hover:underline">📖 External Secrets →</a>
+        <button onclick="openModal('deep-secrets')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-2xl">🦅</span>
+        <h4 class="font-semibold text-slate-900">Falco &amp; OPA Gatekeeper</h4>
+      </div>
+      <p class="text-sm text-slate-600 mb-3">Runtime security (Falco detects suspicious syscalls) and policy enforcement (Gatekeeper blocks non-compliant resources at admission time). CNCF graduated projects.</p>
+      <pre class="bg-slate-900 text-green-300 p-3 rounded text-xs overflow-x-auto"># Install Falco for runtime threat detection
+helm install falco falcosecurity/falco \
+  --namespace falco --create-namespace
+
+# Install OPA Gatekeeper for admission policies
+helm install gatekeeper gatekeeper/gatekeeper \
+  --namespace gatekeeper-system --create-namespace</pre>
+      <div class="flex justify-between items-center mt-3">
+        <a href="https://falco.org" target="_blank" class="text-blue-600 text-xs hover:underline">📖 Falco →</a>
+        <button onclick="openModal('deep-falco')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRODUCTION READINESS CHECKLIST -->
+  <h3 class="text-2xl font-bold text-slate-900 mb-4">✅ Production Readiness Checklist</h3>
+  <div class="bg-gradient-to-br from-slate-50 to-blue-50 border border-slate-200 rounded-2xl p-6 mb-6">
+    <div class="grid md:grid-cols-2 gap-6">
+      <div>
+        <h4 class="font-semibold text-slate-900 mb-3">🧱 Reliability</h4>
+        <ul class="space-y-2 text-sm text-slate-700">
+          <li class="flex gap-2"><span class="text-green-600">✓</span><span><strong>Resource requests &amp; limits</strong> on every container (no noisy neighbors)</span></li>
+          <li class="flex gap-2"><span class="text-green-600">✓</span><span><strong>Liveness &amp; readiness probes</strong> on every pod</span></li>
+          <li class="flex gap-2"><span class="text-green-600">✓</span><span><strong>PodDisruptionBudget</strong> to survive node drains</span></li>
+          <li class="flex gap-2"><span class="text-green-600">✓</span><span><strong>HPA (Horizontal Pod Autoscaler)</strong> for traffic spikes</span></li>
+          <li class="flex gap-2"><span class="text-green-600">✓</span><span><strong>Multi-AZ node pools</strong> for disaster recovery</span></li>
+          <li class="flex gap-2"><span class="text-green-600">✓</span><span><strong>Backups</strong> (Velero) for cluster state + PVCs</span></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-semibold text-slate-900 mb-3">🔒 Security &amp; Ops</h4>
+        <ul class="space-y-2 text-sm text-slate-700">
+          <li class="flex gap-2"><span class="text-green-600">✓</span><span><strong>Non-root containers</strong> + read-only root filesystem</span></li>
+          <li class="flex gap-2"><span class="text-green-600">✓</span><span><strong>Image scanning</strong> (Trivy, Snyk) in CI pipeline</span></li>
+          <li class="flex gap-2"><span class="text-green-600">✓</span><span><strong>NetworkPolicies</strong> to limit pod-to-pod traffic</span></li>
+          <li class="flex gap-2"><span class="text-green-600">✓</span><span><strong>RBAC</strong> with least-privilege ServiceAccounts</span></li>
+          <li class="flex gap-2"><span class="text-green-600">✓</span><span><strong>Secrets</strong> from Vault/External Secrets, not Git</span></li>
+          <li class="flex gap-2"><span class="text-green-600">✓</span><span><strong>Centralized logging + metrics + alerts</strong></span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="mt-6 text-center">
+      <button onclick="openModal('deep-prod-checklist')" class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold px-5 py-2 rounded-lg hover:shadow-lg">✨ Full Checklist &amp; Explanations</button>
+    </div>
+  </div>
+</section>
+
+<!-- PART 7: RANCHER -->
+<section id="rancher" class="mb-16">
+  <h2 class="text-3xl font-bold text-slate-900 mb-2">Part 7 · Rancher — Kubernetes Management Platform</h2>
+  <p class="text-slate-600 mb-8">Once you have more than one cluster (dev, staging, prod, edge locations...), managing them with just kubectl gets painful. Rancher solves that.</p>
+
+  <!-- RANCHER HERO -->
+  <div class="bg-gradient-to-br from-blue-600 via-cyan-600 to-teal-500 text-white rounded-2xl p-8 mb-8 shadow-lg">
+    <div class="flex items-start gap-4">
+      <div class="text-6xl">🐄</div>
+      <div class="flex-1">
+        <h3 class="text-3xl font-bold mb-2">Rancher by SUSE</h3>
+        <p class="text-blue-100 mb-4 text-lg">
+          Rancher is an <strong>open-source multi-cluster Kubernetes management platform</strong>.
+          Think of it as "mission control" for all your K8s clusters — whether they're in AWS, GCP, Azure, on-prem VMware, bare metal, or edge devices.
+          One web UI, one auth system, one policy layer, all your clusters.
+        </p>
+        <div class="flex flex-wrap gap-2 mb-4">
+          <span class="px-3 py-1 bg-white/20 rounded-full text-xs">Multi-Cluster</span>
+          <span class="px-3 py-1 bg-white/20 rounded-full text-xs">Centralized Auth</span>
+          <span class="px-3 py-1 bg-white/20 rounded-full text-xs">App Catalog</span>
+          <span class="px-3 py-1 bg-white/20 rounded-full text-xs">Fleet GitOps</span>
+          <span class="px-3 py-1 bg-white/20 rounded-full text-xs">Open Source</span>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <a href="https://www.rancher.com" target="_blank" class="bg-white text-blue-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-50">📖 rancher.com</a>
+          <button onclick="openModal('deep-rancher')" class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-semibold border border-white/30">✨ Show Me More</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHAT IT DOES -->
+  <h3 class="text-2xl font-bold text-slate-900 mb-4">What Rancher Actually Does</h3>
+  <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🌍</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Multi-Cluster Management</h4>
+      <p class="text-xs text-slate-600">Import existing clusters (EKS, GKE, AKS, kind, k3s, anything) or provision new ones. Single pane of glass for all of them.</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">👥</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Centralized Auth &amp; RBAC</h4>
+      <p class="text-xs text-slate-600">Plug in Active Directory, LDAP, SAML, GitHub, Okta — once. Users get consistent RBAC across every cluster.</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">📦</div>
+      <h4 class="font-semibold text-slate-900 mb-1">App Catalog</h4>
+      <p class="text-xs text-slate-600">Curated Helm chart library with a one-click install UI. Internal teams can publish private charts for their apps.</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🚀</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Fleet (GitOps at Scale)</h4>
+      <p class="text-xs text-slate-600">Rancher's built-in GitOps engine. Push a change to Git, Fleet rolls it out to 100+ clusters with group targeting.</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">📊</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Built-in Monitoring</h4>
+      <p class="text-xs text-slate-600">One-click install of Prometheus + Grafana + Alertmanager, pre-configured and integrated with Rancher's UI.</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🔧</div>
+      <h4 class="font-semibold text-slate-900 mb-1">CLI + Web UI + API</h4>
+      <p class="text-xs text-slate-600">kubectl still works perfectly. Rancher UI is for visibility and day-2 ops. Full REST API for automation.</p>
+    </div>
+  </div>
+
+  <!-- RANCHER FAMILY -->
+  <h3 class="text-2xl font-bold text-slate-900 mb-4">The Rancher Family of Projects</h3>
+  <p class="text-slate-600 mb-6">SUSE (who acquired Rancher Labs in 2020) maintains several related projects that often get confused. Here's the map:</p>
+
+  <div class="grid md:grid-cols-2 gap-5 mb-8">
+
+    <div class="bg-white rounded-xl shadow-sm border-2 border-blue-200 p-5">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-2xl">🐄</span>
+        <h4 class="font-semibold text-slate-900">Rancher (Manager)</h4>
+      </div>
+      <p class="text-sm text-slate-600 mb-2">The multi-cluster management platform itself. Runs on any K8s cluster and manages all the others.</p>
+      <div class="text-xs text-slate-500"><strong>Use when:</strong> You have 2+ clusters or multi-tenant requirements.</div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border-2 border-green-200 p-5">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-2xl">🐑</span>
+        <h4 class="font-semibold text-slate-900">k3s</h4>
+      </div>
+      <p class="text-sm text-slate-600 mb-2">Lightweight certified K8s distribution. A single 60MB binary. Runs on Raspberry Pi, IoT, edge, and embedded systems.</p>
+      <div class="text-xs text-slate-500"><strong>Use when:</strong> Resources are tight or you're at the edge.</div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border-2 border-purple-200 p-5">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-2xl">☸️</span>
+        <h4 class="font-semibold text-slate-900">RKE2 (Rancher Kubernetes Engine 2)</h4>
+      </div>
+      <p class="text-sm text-slate-600 mb-2">Security-focused, FIPS-compliant K8s distribution for government/regulated environments. Successor to original RKE.</p>
+      <div class="text-xs text-slate-500"><strong>Use when:</strong> You need hardened K8s for on-prem or gov workloads.</div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border-2 border-orange-200 p-5">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-2xl">🚢</span>
+        <h4 class="font-semibold text-slate-900">Fleet</h4>
+      </div>
+      <p class="text-sm text-slate-600 mb-2">GitOps engine built into Rancher, but also usable standalone. Designed to manage 1,000,000+ clusters from one Git repo.</p>
+      <div class="text-xs text-slate-500"><strong>Use when:</strong> You need GitOps across many clusters.</div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border-2 border-pink-200 p-5">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-2xl">🐘</span>
+        <h4 class="font-semibold text-slate-900">Longhorn</h4>
+      </div>
+      <p class="text-sm text-slate-600 mb-2">Cloud-native distributed block storage for K8s. Snapshots, backups, replication — all via CRDs and a slick UI.</p>
+      <div class="text-xs text-slate-500"><strong>Use when:</strong> You need stateful workloads without a cloud storage provider.</div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border-2 border-indigo-200 p-5">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-2xl">🔍</span>
+        <h4 class="font-semibold text-slate-900">NeuVector</h4>
+      </div>
+      <p class="text-sm text-slate-600 mb-2">Container security platform — runtime protection, vulnerability scanning, compliance, zero-trust network segmentation.</p>
+      <div class="text-xs text-slate-500"><strong>Use when:</strong> Security/compliance is top priority.</div>
+    </div>
+  </div>
+
+  <!-- RANCHER QUICK INSTALL -->
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+    <h3 class="text-lg font-semibold mb-3">🚀 Install Rancher in your kind cluster</h3>
+    <p class="text-slate-600 text-sm mb-3">You can run Rancher locally to try it out. Here's the fastest path using Helm:</p>
+    <pre class="bg-slate-900 text-green-300 p-4 rounded-lg text-xs overflow-x-auto"># Add the Rancher Helm repo
+helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
+helm repo update
+
+# cert-manager is required (Rancher uses it for TLS)
+helm repo add jetstack https://charts.jetstack.io
+helm install cert-manager jetstack/cert-manager \
+  --namespace cert-manager --create-namespace \
+  --set installCRDs=true
+
+# Create the namespace for Rancher
+kubectl create namespace cattle-system
+
+# Install Rancher (self-signed cert for local use)
+helm install rancher rancher-latest/rancher \
+  --namespace cattle-system \
+  --set hostname=rancher.localhost \
+  --set replicas=1 \
+  --set bootstrapPassword=admin
+
+# Wait for it to come up
+kubectl -n cattle-system rollout status deploy/rancher
+
+# Port-forward and open in browser
+kubectl port-forward -n cattle-system svc/rancher 8443:443
+# Then visit: https://rancher.localhost:8443</pre>
+
+    <p class="text-slate-600 text-sm mt-4 mb-2"><strong>Alternative: single-container Docker install</strong> (fastest for a quick look):</p>
+    <pre class="bg-slate-900 text-green-300 p-4 rounded-lg text-xs overflow-x-auto">docker run -d --restart=unless-stopped \
+  -p 80:80 -p 443:443 \
+  --privileged \
+  rancher/rancher:latest
+
+# Then browse to https://localhost and grab the bootstrap password:
+docker logs &lt;container-id&gt; 2&gt;&amp;1 | grep "Bootstrap Password:"</pre>
+  </div>
+
+  <!-- RANCHER USE CASES -->
+  <h3 class="text-2xl font-bold text-slate-900 mb-4">Real-World Use Cases for Rancher</h3>
+  <div class="grid md:grid-cols-2 gap-5 mb-6">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <h4 class="font-semibold text-slate-900 mb-2">🏬 Retail &amp; Edge Computing</h4>
+      <p class="text-sm text-slate-600">Companies like <strong>Walmart</strong> and <strong>Lowe's</strong> run K8s clusters in every store (point-of-sale, inventory, signage). Rancher + k3s manages thousands of these edge clusters from HQ with Fleet pushing updates overnight.</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <h4 class="font-semibold text-slate-900 mb-2">🏦 Regulated Enterprises</h4>
+      <p class="text-sm text-slate-600">Banks and insurance firms use Rancher + RKE2 on-prem because they can't (or won't) put data in public clouds. Rancher gives them a cloud-like UX on bare metal.</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <h4 class="font-semibold text-slate-900 mb-2">🏥 Healthcare &amp; Life Sciences</h4>
+      <p class="text-sm text-slate-600">Hospital systems run HIPAA-compliant workloads across on-prem and cloud. Rancher's unified RBAC and audit logging simplify compliance reporting across heterogeneous clusters.</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <h4 class="font-semibold text-slate-900 mb-2">🎓 Platform Engineering Teams</h4>
+      <p class="text-sm text-slate-600">Internal platform teams at mid-to-large companies use Rancher as their "internal developer portal." Dev teams get project-scoped namespaces with self-service access via the Rancher UI.</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <h4 class="font-semibold text-slate-900 mb-2">🚜 Industrial IoT</h4>
+      <p class="text-sm text-slate-600">Factories, wind farms, oil rigs. k3s on the ruggedized hardware, Rancher back at HQ. Deutsche Telekom, Siemens, and various manufacturers use this pattern.</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <h4 class="font-semibold text-slate-900 mb-2">🌐 Multi-Cloud Strategy</h4>
+      <p class="text-sm text-slate-600">Companies hedging against cloud vendor lock-in run workloads across AWS, GCP, and Azure simultaneously. Rancher abstracts the differences so developers don't need to care which cloud a pod lands on.</p>
+    </div>
+  </div>
+
+  <!-- COMPARISON TABLE -->
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-4">
+    <h3 class="text-lg font-semibold mb-3">Rancher vs. Alternatives</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-100 text-slate-700">
+          <tr>
+            <th class="p-3 text-left">Tool</th>
+            <th class="p-3 text-left">Multi-Cluster</th>
+            <th class="p-3 text-left">Open Source</th>
+            <th class="p-3 text-left">Best For</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200">
+          <tr>
+            <td class="p-3 font-semibold">Rancher</td>
+            <td class="p-3">✅ Native</td>
+            <td class="p-3">✅ Apache 2.0</td>
+            <td class="p-3">Hybrid/multi-cloud, edge, on-prem</td>
+          </tr>
+          <tr>
+            <td class="p-3 font-semibold">OpenShift</td>
+            <td class="p-3">✅ (via ACM)</td>
+            <td class="p-3">⚠️ Open Core</td>
+            <td class="p-3">Red Hat enterprise shops</td>
+          </tr>
+          <tr>
+            <td class="p-3 font-semibold">Google Anthos</td>
+            <td class="p-3">✅ Native</td>
+            <td class="p-3">❌ Commercial</td>
+            <td class="p-3">GCP-centric multi-cloud</td>
+          </tr>
+          <tr>
+            <td class="p-3 font-semibold">VMware Tanzu</td>
+            <td class="p-3">✅ (via TMC)</td>
+            <td class="p-3">❌ Commercial</td>
+            <td class="p-3">VMware vSphere environments</td>
+          </tr>
+          <tr>
+            <td class="p-3 font-semibold">Portainer</td>
+            <td class="p-3">✅</td>
+            <td class="p-3">⚠️ Open Core</td>
+            <td class="p-3">Smaller teams, Docker + K8s</td>
+          </tr>
+          <tr>
+            <td class="p-3 font-semibold">Lens IDE</td>
+            <td class="p-3">✅ (desktop)</td>
+            <td class="p-3">✅ MIT</td>
+            <td class="p-3">Individual developers</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="mt-4 text-center">
+      <button onclick="openModal('deep-rancher-compare')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium px-4 py-2 rounded-lg hover:shadow-md">✨ Detailed Comparison</button>
+    </div>
+  </div>
+</section>
+
 <!-- RESOURCES -->
 <section id="resources" class="mb-16">
-  <h2 class="text-3xl font-bold text-slate-900 mb-6">Part 5 · Official Documentation</h2>
+  <h2 class="text-3xl font-bold text-slate-900 mb-6">Part 8 · Official Documentation</h2>
   <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
     <a href="https://helm.sh/docs/" target="_blank" class="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition">
       <h4 class="font-semibold text-slate-900">Helm Docs</h4>
@@ -948,6 +1447,26 @@ helm install myapp ./charts/myapp \
     <a href="https://brew.sh" target="_blank" class="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition">
       <h4 class="font-semibold text-slate-900">Homebrew</h4>
       <p class="text-sm text-slate-600 mt-1">macOS package manager.</p>
+    </a>
+    <a href="https://www.rancher.com/docs" target="_blank" class="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition">
+      <h4 class="font-semibold text-slate-900">Rancher Docs</h4>
+      <p class="text-sm text-slate-600 mt-1">Multi-cluster K8s management platform.</p>
+    </a>
+    <a href="https://k3s.io" target="_blank" class="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition">
+      <h4 class="font-semibold text-slate-900">k3s</h4>
+      <p class="text-sm text-slate-600 mt-1">Lightweight K8s for edge and IoT.</p>
+    </a>
+    <a href="https://prometheus.io/docs/" target="_blank" class="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition">
+      <h4 class="font-semibold text-slate-900">Prometheus</h4>
+      <p class="text-sm text-slate-600 mt-1">Metrics and monitoring for K8s.</p>
+    </a>
+    <a href="https://grafana.com/docs/" target="_blank" class="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition">
+      <h4 class="font-semibold text-slate-900">Grafana</h4>
+      <p class="text-sm text-slate-600 mt-1">Dashboards, alerts, and visualization.</p>
+    </a>
+    <a href="https://longhorn.io" target="_blank" class="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition">
+      <h4 class="font-semibold text-slate-900">Longhorn</h4>
+      <p class="text-sm text-slate-600 mt-1">Cloud-native storage for K8s (SUSE).</p>
     </a>
   </div>
 </section>
@@ -1971,6 +2490,495 @@ Response bubbles back up the chain</pre>
         <li>CI builds new images on commit, updates the image tag in Git, Argo picks it up → deployed.</li>
       </ol>
       <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/" target="_blank" class="text-blue-600 hover:underline">StatefulSets</a> · <a href="https://kubernetes.io/docs/concepts/services-networking/ingress/" target="_blank" class="text-blue-600 hover:underline">Ingress</a> · <a href="https://cloudnative-pg.io" target="_blank" class="text-blue-600 hover:underline">CloudNativePG Operator</a></p>`
+  },
+
+  // ============ PART 6: OBSERVABILITY & PRODUCTION MODALS ============
+  'deep-prometheus': {
+    title: '🔥 Prometheus — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>Prometheus is a time-series database and monitoring system originally built at SoundCloud in 2012, inspired by Google's Borgmon. It's the second project ever to graduate from the CNCF (after Kubernetes itself). Its core innovation is the <strong>pull model</strong>: instead of apps pushing metrics out, Prometheus scrapes HTTP <code class="bg-slate-100 px-1 rounded">/metrics</code> endpoints on a schedule. It uses a powerful query language called <strong>PromQL</strong> for slicing and aggregating the data.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Code snippet</h4>
+      <pre class="bg-slate-900 text-blue-200 p-3 rounded text-xs overflow-x-auto"># Instrument a Node.js app
+const client = require('prom-client');
+const httpRequests = new client.Counter({
+  name: 'http_requests_total',
+  help: 'Total HTTP requests',
+  labelNames: ['method', 'status']
+});
+
+app.get('/metrics', (req, res) => {
+  res.set('Content-Type', client.register.contentType);
+  res.end(client.register.metrics());
+});
+
+# PromQL examples:
+# Request rate per second over 5 min
+rate(http_requests_total[5m])
+
+# 95th percentile latency
+histogram_quantile(0.95, rate(http_duration_bucket[5m]))
+
+# Pods using more than 80% of memory limit
+container_memory_working_set_bytes
+  / container_spec_memory_limit_bytes > 0.8</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>DigitalOcean, GitLab, Shopify</strong> — Prometheus is their primary metrics backbone.</li>
+        <li><strong>Every major K8s distribution</strong> (OpenShift, Rancher, EKS, GKE) ships with Prometheus-compatible monitoring.</li>
+        <li><strong>Uber, Reddit</strong> — use it for infrastructure monitoring at massive scale.</li>
+        <li><strong>Cloudflare</strong> — runs Prometheus at the edge on hundreds of data centers.</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://prometheus.io/docs/introduction/overview/" target="_blank" class="text-blue-600 hover:underline">Prometheus overview</a> · <a href="https://prometheus.io/docs/prometheus/latest/querying/basics/" target="_blank" class="text-blue-600 hover:underline">PromQL basics</a></p>`
+  },
+
+  'deep-grafana': {
+    title: '📈 Grafana — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>Grafana is an open-source analytics and visualization platform. It started in 2014 as a fork of Kibana focused on time-series data. It supports 100+ data sources (Prometheus, Loki, Elasticsearch, PostgreSQL, CloudWatch, Datadog...) and unifies them in dashboards. Grafana Labs (the company) also maintains Loki (logs), Tempo (traces), and Mimir (scalable Prometheus).</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Key features</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Dashboards as code</strong> — JSON definitions checked into Git</li>
+        <li><strong>Unified alerting</strong> — one alert engine across all data sources</li>
+        <li><strong>Annotations</strong> — overlay deployments, incidents, and events on graphs</li>
+        <li><strong>Variables</strong> — interactive dropdowns to filter by cluster, namespace, service</li>
+        <li><strong>Explore mode</strong> — ad-hoc query exploration for debugging</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>eBay, Bloomberg, Salesforce</strong> — run Grafana as the main ops dashboard platform.</li>
+        <li><strong>Wikimedia Foundation</strong> — public Grafana at grafana.wikimedia.org.</li>
+        <li><strong>CERN</strong> — monitors the Large Hadron Collider with Grafana dashboards.</li>
+        <li><strong>Over 1 million active instances</strong> worldwide per Grafana Labs.</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://grafana.com/grafana/dashboards/" target="_blank" class="text-blue-600 hover:underline">Browse 10,000+ community dashboards</a></p>`
+  },
+
+  'deep-loki': {
+    title: '📜 Loki — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>Loki is a horizontally scalable log aggregation system inspired by Prometheus. The key innovation: instead of indexing every word (like Elasticsearch), it only indexes <strong>labels</strong> on log streams. The actual log content is stored compressed in cheap object storage (S3, GCS). This makes it 10-100x cheaper than Elasticsearch for the same volume.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">LogQL query examples</h4>
+      <pre class="bg-slate-900 text-blue-200 p-3 rounded text-xs overflow-x-auto"># All error logs from the api namespace
+{namespace="api"} |= "error"
+
+# Parse JSON logs and filter by field
+{app="web"} | json | status_code >= 500
+
+# Count errors per service over 5 min
+sum by (app) (
+  count_over_time({level="error"}[5m])
+)</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Paytm, Wells Fargo</strong> — public Loki users per Grafana Labs case studies.</li>
+        <li><strong>IBM Cloud</strong> — integrates Loki for its managed K8s logging.</li>
+        <li><strong>Anyone running Prometheus</strong> — Loki is the natural log pairing because it uses the same labels.</li>
+      </ul>`
+  },
+
+  'deep-otel': {
+    title: '🔍 OpenTelemetry — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>OpenTelemetry (OTel) is a CNCF project that unifies metrics, logs, and traces under one standard. It emerged from the merger of OpenTracing and OpenCensus in 2019. It provides SDKs for every major language, plus a standalone <strong>Collector</strong> that receives, processes, and exports telemetry to any backend. The big deal: write instrumentation once, change backends without touching your code.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Architecture</h4>
+      <pre class="bg-slate-900 text-blue-200 p-3 rounded text-xs overflow-x-auto">Your App (OTel SDK)
+  ↓ OTLP protocol
+OTel Collector (sidecar or deployment)
+  ↓ exporters
+┌──────────────┬───────────┬──────────┐
+Prometheus     Jaeger      Loki
+(metrics)      (traces)    (logs)</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Microsoft, Google, AWS, Splunk, Datadog, New Relic</strong> — all contribute to OTel and support it in their products.</li>
+        <li><strong>Shopify, Uber, Lightstep</strong> — production users at scale.</li>
+        <li><strong>It's now the second-most active CNCF project</strong> after Kubernetes itself.</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://opentelemetry.io/docs/" target="_blank" class="text-blue-600 hover:underline">OTel documentation</a></p>`
+  },
+
+  'deep-jaeger': {
+    title: '🧭 Jaeger / Tempo — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What distributed tracing solves</h4>
+      <p>In a microservices app, a single user request might touch 20 services across 5 databases. When it's slow, which hop is the bottleneck? Tracing answers this. Each service adds a "span" to a shared trace ID as the request flows through. The trace visualization shows the full waterfall.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Jaeger vs Tempo</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Jaeger</strong> — CNCF graduated, originally from Uber. Full-featured with its own storage (Elasticsearch/Cassandra).</li>
+        <li><strong>Tempo</strong> — Grafana Labs' trace backend. Stores traces in object storage only (cheaper), integrates natively with Grafana.</li>
+        <li>Both support OpenTelemetry and can be used interchangeably.</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Uber</strong> — created Jaeger; uses it for thousands of microservices.</li>
+        <li><strong>Red Hat OpenShift</strong> — ships Jaeger as the default tracing solution.</li>
+        <li><strong>Grafana Cloud customers</strong> — Tempo powers distributed tracing for thousands of SaaS companies.</li>
+      </ul>`
+  },
+
+  'deep-alertmanager': {
+    title: '🚨 Alertmanager — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>Alertmanager handles alerts sent by Prometheus (or any compatible source). It's designed to solve the real problems of alert fatigue: <strong>grouping</strong> (100 pods failing = 1 alert, not 100), <strong>inhibition</strong> (if the cluster is down, don't page about pods), <strong>silencing</strong> (mute during maintenance windows), and <strong>routing</strong> (page SRE for critical, email dev team for warnings).</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Example routing config</h4>
+      <pre class="bg-slate-900 text-blue-200 p-3 rounded text-xs overflow-x-auto">route:
+  group_by: ['alertname', 'cluster']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  receiver: 'default'
+  routes:
+    - match:
+        severity: critical
+      receiver: 'pagerduty'
+    - match:
+        team: data
+      receiver: 'data-slack'
+
+receivers:
+  - name: 'pagerduty'
+    pagerduty_configs:
+      - service_key: 'your-key'
+  - name: 'data-slack'
+    slack_configs:
+      - channel: '#data-alerts'</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>GitLab</strong> — routes all infrastructure alerts through Alertmanager.</li>
+        <li><strong>SoundCloud</strong> (original Prometheus creators) — still the reference implementation.</li>
+        <li><strong>Nearly every Prometheus user in production</strong> eventually adopts it.</li>
+      </ul>`
+  },
+
+  'deep-rbac': {
+    title: '🎫 RBAC — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">The four building blocks</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Role</strong> — a set of allowed actions within a namespace ("can read pods in default")</li>
+        <li><strong>ClusterRole</strong> — same, but cluster-wide ("can read nodes anywhere")</li>
+        <li><strong>RoleBinding</strong> — assigns a Role to a user/group/ServiceAccount</li>
+        <li><strong>ClusterRoleBinding</strong> — same, cluster-wide</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Complete example</h4>
+      <pre class="bg-slate-900 text-blue-200 p-3 rounded text-xs overflow-x-auto"># Create a ServiceAccount for the app
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: my-app
+  namespace: production
+---
+# Create a Role with specific permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: config-reader
+  namespace: production
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list"]
+---
+# Bind the Role to the ServiceAccount
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: my-app-config-reader
+  namespace: production
+subjects:
+  - kind: ServiceAccount
+    name: my-app
+roleRef:
+  kind: Role
+  name: config-reader
+  apiGroup: rbac.authorization.k8s.io</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Real-world patterns</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Every managed K8s service</strong> (EKS, GKE, AKS) integrates cloud IAM with K8s RBAC.</li>
+        <li><strong>Multi-tenant clusters</strong> — each team gets a namespace + RoleBindings scoped to it.</li>
+        <li><strong>CI/CD pipelines</strong> — use dedicated ServiceAccounts with narrow deployment-only permissions.</li>
+        <li><strong>Compliance audits</strong> — RBAC policies are typically reviewed for SOC2, HIPAA, PCI.</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://kubernetes.io/docs/reference/access-authn-authz/rbac/" target="_blank" class="text-blue-600 hover:underline">RBAC documentation</a></p>`
+  },
+
+  'deep-netpol': {
+    title: '🛡️ NetworkPolicy — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">The default is "allow all"</h4>
+      <p>By default, Kubernetes has a flat network — every pod can talk to every other pod on any port. NetworkPolicy changes that. Once you apply a policy selecting a pod, that pod becomes "isolated" and only the explicitly allowed traffic gets through. It's a zero-trust starting point.</p>
+
+      <p class="mt-2"><strong>Important:</strong> NetworkPolicies require a CNI plugin that supports them (Calico, Cilium, Weave). Flannel alone does not — a common gotcha.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Default-deny + explicit allow</h4>
+      <pre class="bg-slate-900 text-blue-200 p-3 rounded text-xs overflow-x-auto"># Deny ALL ingress in a namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: production
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+# Then explicitly allow what you need
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-api-to-db
+  namespace: production
+spec:
+  podSelector:
+    matchLabels: { app: postgres }
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: { app: api }
+      ports:
+        - protocol: TCP
+          port: 5432</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Banks and healthcare</strong> — often required for PCI DSS and HIPAA compliance.</li>
+        <li><strong>Cilium users (Google GKE Dataplane V2, AWS EKS)</strong> — extended NetworkPolicy with L7 (HTTP) rules.</li>
+        <li><strong>Zero-trust architectures</strong> — pair NetworkPolicy with a service mesh (Istio, Linkerd) for mTLS.</li>
+      </ul>`
+  },
+
+  'deep-secrets': {
+    title: '🔑 Secrets & External Secrets — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">The dirty truth about K8s Secrets</h4>
+      <p>K8s Secrets are <strong>just base64 encoded</strong>, not encrypted. Anyone with read access to the etcd database (or cluster-admin RBAC) can decode them instantly. In production, you need additional layers:</p>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Encryption at rest</strong> — enable etcd encryption in kube-apiserver config</li>
+        <li><strong>External Secrets Operator (ESO)</strong> — syncs from AWS Secrets Manager, GCP Secret Manager, HashiCorp Vault, Azure Key Vault</li>
+        <li><strong>Sealed Secrets (Bitnami)</strong> — encrypted Secrets you can safely commit to Git</li>
+        <li><strong>SOPS + Age</strong> — encrypt YAML files with a key, decrypt at deploy time</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">External Secrets example</h4>
+      <pre class="bg-slate-900 text-blue-200 p-3 rounded text-xs overflow-x-auto">apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: db-credentials
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: vault-backend
+    kind: SecretStore
+  target:
+    name: db-creds   # K8s Secret that gets created
+  data:
+    - secretKey: password
+      remoteRef:
+        key: secret/data/prod/db
+        property: password</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses what</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>AWS-native shops</strong> — External Secrets + AWS Secrets Manager.</li>
+        <li><strong>Multi-cloud enterprises</strong> — HashiCorp Vault + Vault Agent Injector or ESO.</li>
+        <li><strong>GitOps-pure teams</strong> — Sealed Secrets or SOPS for "everything in Git" workflows.</li>
+        <li><strong>Weaveworks, Intuit, Bloomberg</strong> — public case studies for each approach.</li>
+      </ul>`
+  },
+
+  'deep-falco': {
+    title: '🦅 Falco & OPA Gatekeeper — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">Two complementary security tools</h4>
+      <p><strong>Falco</strong> is a <em>runtime</em> security tool. It hooks into the Linux kernel (via eBPF) and watches syscalls in real time. You write rules like "alert if a shell is spawned inside a production pod" or "alert if /etc/shadow is read." Originally from Sysdig, now CNCF graduated.</p>
+
+      <p class="mt-2"><strong>OPA Gatekeeper</strong> is an <em>admission-time</em> policy enforcer. It intercepts every create/update to the K8s API and evaluates policies written in <strong>Rego</strong>. You can block any resource that violates rules — like "no pods without resource limits" or "no containers running as root." Based on Open Policy Agent (also CNCF graduated).</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Example Gatekeeper policy</h4>
+      <pre class="bg-slate-900 text-blue-200 p-3 rounded text-xs overflow-x-auto">apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequiredLabels
+metadata:
+  name: require-owner-label
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Namespace"]
+  parameters:
+    labels: ["owner", "cost-center"]</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Shopify, GitHub, Booking.com</strong> — Falco in production for runtime threat detection.</li>
+        <li><strong>Goldman Sachs, T-Mobile, Pinterest</strong> — OPA/Gatekeeper for compliance enforcement.</li>
+        <li><strong>Kyverno</strong> — a simpler alternative to Gatekeeper using YAML instead of Rego; increasingly popular.</li>
+      </ul>`
+  },
+
+  'deep-prod-checklist': {
+    title: '✅ Full Production Readiness Checklist',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">🧱 Application-level</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Resource requests &amp; limits</strong> on every container — prevents noisy neighbors and OOM chaos.</li>
+        <li><strong>Liveness probe</strong> — restarts stuck containers (endless loop, deadlock).</li>
+        <li><strong>Readiness probe</strong> — removes pods from Service until truly ready (DB connection, cache warmed).</li>
+        <li><strong>Startup probe</strong> — for slow-starting apps (Java, legacy monoliths).</li>
+        <li><strong>Graceful shutdown</strong> — handle SIGTERM, finish in-flight requests within terminationGracePeriodSeconds.</li>
+        <li><strong>PodDisruptionBudget</strong> — protects you during voluntary evictions (node drain, upgrades).</li>
+        <li><strong>Non-root user</strong> + <code class="bg-slate-100 px-1 rounded">readOnlyRootFilesystem: true</code> in securityContext.</li>
+        <li><strong>Image tags pinned</strong> to specific versions (never <code class="bg-slate-100 px-1 rounded">:latest</code>).</li>
+        <li><strong>Image scanning</strong> in CI (Trivy, Grype, Snyk).</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🌐 Cluster-level</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Multiple availability zones</strong> for node pools.</li>
+        <li><strong>Autoscaling</strong> — Cluster Autoscaler + HPA (CPU/memory) + VPA (right-sizing) + KEDA (event-driven).</li>
+        <li><strong>Ingress with TLS</strong> — cert-manager + Let's Encrypt or your cert authority.</li>
+        <li><strong>NetworkPolicies</strong> — default deny in production namespaces.</li>
+        <li><strong>RBAC</strong> — no cluster-admin for humans; every app has its own ServiceAccount.</li>
+        <li><strong>Secrets</strong> — externalized (Vault, ESO) + etcd encryption at rest.</li>
+        <li><strong>Admission control</strong> — OPA/Gatekeeper or Kyverno enforcing standards.</li>
+        <li><strong>Backups</strong> — Velero for cluster state + snapshotted PVCs.</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">📊 Observability</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Metrics</strong> — Prometheus + Grafana with golden signals (latency, traffic, errors, saturation).</li>
+        <li><strong>Logs</strong> — Loki or ELK with structured JSON logging.</li>
+        <li><strong>Traces</strong> — OpenTelemetry instrumentation.</li>
+        <li><strong>Alerting</strong> — Alertmanager → PagerDuty/Slack; only alert on user-impacting symptoms.</li>
+        <li><strong>SLOs</strong> — defined and tracked with error budgets.</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🚀 Deployment &amp; Operations</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>GitOps</strong> — Argo CD or Flux; no kubectl apply from laptops.</li>
+        <li><strong>Progressive delivery</strong> — canary/blue-green with Argo Rollouts or Flagger.</li>
+        <li><strong>Runbooks</strong> — written procedures for common incidents.</li>
+        <li><strong>Chaos engineering</strong> — Chaos Mesh, Litmus, or Gremlin for resilience testing.</li>
+        <li><strong>Disaster recovery plan</strong> — tested, not just documented.</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://github.com/mercari/production-readiness-checklist" target="_blank" class="text-blue-600 hover:underline">Mercari's public checklist</a> · <a href="https://learnk8s.io/production-best-practices" target="_blank" class="text-blue-600 hover:underline">learnk8s checklist</a></p>`
+  },
+
+  // ============ PART 7: RANCHER MODALS ============
+  'deep-rancher': {
+    title: '🐄 Rancher — Full Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">The history</h4>
+      <p>Rancher Labs was founded in 2014 by Sheng Liang (former Cloud.com/CloudStack founder). The original Rancher 1.x supported multiple orchestrators — Docker Swarm, Mesos, and Kubernetes. Rancher 2.x (2018) went all-in on Kubernetes. In December 2020, SUSE acquired Rancher Labs for around $600M, and Rancher is now the centerpiece of SUSE's cloud-native strategy alongside the SLE Micro OS.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Architecture in one sentence</h4>
+      <p>Rancher itself is a Kubernetes application (deployed via Helm) that runs a "management cluster," which then talks to one or more "downstream clusters" via an agent. All interaction — UI, API, CLI — goes through the Rancher server, which proxies authenticated requests to the appropriate downstream cluster's API.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">What you get out of the box</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Web UI</strong> — every K8s resource, across every cluster, in one place</li>
+        <li><strong>Auth integration</strong> — AD, LDAP, SAML, OAuth (GitHub, Google, Okta, Keycloak, PingIdentity, Azure AD)</li>
+        <li><strong>Project abstraction</strong> — groups namespaces for multi-tenancy; RBAC scoped to projects</li>
+        <li><strong>Cluster provisioning</strong> — spin up RKE2/k3s on bare metal, VMs, or existing nodes</li>
+        <li><strong>Import existing clusters</strong> — EKS, GKE, AKS, or any conformant K8s via an agent install</li>
+        <li><strong>Fleet</strong> — built-in GitOps, designed to manage 1 million+ clusters</li>
+        <li><strong>Monitoring stack</strong> — one-click Prometheus + Grafana + Alertmanager</li>
+        <li><strong>Logging stack</strong> — one-click Fluent Bit → Elasticsearch/Loki/Splunk</li>
+        <li><strong>App Catalog</strong> — curated Helm chart library with Rancher-specific enhancements</li>
+        <li><strong>Backup/Restore</strong> — built-in etcd snapshots + Rancher Backup operator</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Install paths</h4>
+      <pre class="bg-slate-900 text-green-300 p-3 rounded text-xs overflow-x-auto"># Path 1: Single Docker container (fastest for evaluation)
+docker run -d --restart=unless-stopped \\
+  -p 80:80 -p 443:443 --privileged \\
+  rancher/rancher:latest
+
+# Path 2: Helm on an existing K8s cluster (production)
+helm install rancher rancher-latest/rancher \\
+  --namespace cattle-system --create-namespace \\
+  --set hostname=rancher.example.com \\
+  --set ingress.tls.source=letsEncrypt \\
+  --set [email protected] \\
+  --set replicas=3
+
+# Path 3: High-availability with RKE2 + Rancher
+# (SUSE's recommended production pattern)</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Licensing &amp; cost</h4>
+      <p>Rancher itself is <strong>100% free and open source</strong> (Apache 2.0). SUSE sells commercial support contracts (Rancher Prime), which include longer support windows, hardened images, and access to NeuVector. You can run Rancher forever without paying SUSE a cent.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Notable users</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Walmart</strong> — runs K8s in 5,000+ stores with Rancher + k3s for edge compute.</li>
+        <li><strong>Siemens</strong> — industrial IoT and MindSphere platform.</li>
+        <li><strong>Ubisoft</strong> — game server infrastructure across multiple clouds.</li>
+        <li><strong>La Liga</strong> — the Spanish football league manages its infrastructure with Rancher.</li>
+        <li><strong>AT&amp;T, Sky Betting &amp; Gaming, Audi</strong> — public case studies on rancher.com.</li>
+        <li><strong>European Space Agency</strong> — uses Rancher for satellite data processing platforms.</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://www.rancher.com/docs/" target="_blank" class="text-blue-600 hover:underline">Rancher docs</a> · <a href="https://github.com/rancher/rancher" target="_blank" class="text-blue-600 hover:underline">rancher/rancher on GitHub</a> · <a href="https://www.rancher.com/customers" target="_blank" class="text-blue-600 hover:underline">Customer case studies</a></p>`
+  },
+
+  'deep-rancher-compare': {
+    title: 'Rancher vs. Alternatives — Detailed Comparison',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">🐄 Rancher (SUSE)</h4>
+      <p><strong>Strengths:</strong> 100% open source, runs anywhere, excellent multi-cluster UX, free forever, large community, vendor-neutral across clouds.</p>
+      <p><strong>Weaknesses:</strong> Self-hosted management cluster is one more thing to maintain. Smaller ecosystem than OpenShift.</p>
+      <p><strong>Best for:</strong> Hybrid/multi-cloud, edge computing, teams that want to avoid vendor lock-in.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-4">🎩 Red Hat OpenShift</h4>
+      <p><strong>Strengths:</strong> Deep enterprise support, integrated developer experience (Source-to-Image, OpenShift Pipelines), strong security defaults (SCC), integration with Red Hat stack (RHEL, Ansible).</p>
+      <p><strong>Weaknesses:</strong> Expensive. Opinionated (it's "K8s the Red Hat way" — some standard K8s things don't work the same). Vendor lock-in.</p>
+      <p><strong>Best for:</strong> Traditional enterprises already invested in Red Hat; regulated industries that need paid support.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-4">☁️ Google Anthos</h4>
+      <p><strong>Strengths:</strong> Best-in-class integration with GCP services; strong service mesh (Istio/Anthos Service Mesh); good for teams running workloads on GKE + on-prem.</p>
+      <p><strong>Weaknesses:</strong> Expensive, GCP-centric design even when managing other clouds, steep learning curve.</p>
+      <p><strong>Best for:</strong> GCP-first organizations extending to hybrid.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-4">🏢 VMware Tanzu</h4>
+      <p><strong>Strengths:</strong> Deep vSphere integration, good fit if you already run vSphere at scale. Tanzu Mission Control (TMC) for multi-cluster.</p>
+      <p><strong>Weaknesses:</strong> Fragmented product line (confusing which Tanzu product does what). Ongoing uncertainty since the Broadcom acquisition.</p>
+      <p><strong>Best for:</strong> Existing VMware vSphere shops.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-4">🐋 Portainer</h4>
+      <p><strong>Strengths:</strong> Simpler than Rancher. Manages both Docker Swarm and K8s. Great for small teams.</p>
+      <p><strong>Weaknesses:</strong> Open-core (some features are paid). Less powerful than Rancher for large-scale K8s-only ops.</p>
+      <p><strong>Best for:</strong> SMBs, teams transitioning from Docker Swarm to K8s.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-4">🔬 Lens IDE</h4>
+      <p><strong>Strengths:</strong> Desktop app — beautiful UI, great for individual devs exploring clusters. Free for personal use.</p>
+      <p><strong>Weaknesses:</strong> Desktop only, not a team platform. Not a replacement for cluster management — more of a kubectl UI.</p>
+      <p><strong>Best for:</strong> Individual developers and SREs who want a fast local K8s explorer.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-4">TL;DR Decision Matrix</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>"I want open source and multi-cluster"</strong> → Rancher</li>
+        <li><strong>"I want paid enterprise support with a full stack"</strong> → OpenShift</li>
+        <li><strong>"I'm all-in on GCP"</strong> → Anthos (or just GKE)</li>
+        <li><strong>"I have vSphere everywhere"</strong> → Tanzu</li>
+        <li><strong>"I'm a small team with Docker + K8s"</strong> → Portainer</li>
+        <li><strong>"I'm an individual dev"</strong> → Lens IDE (or k9s in the terminal)</li>
+      </ul>`
   }
 };
 
