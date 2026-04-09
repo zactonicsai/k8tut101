@@ -25,6 +25,8 @@
     <div class="hidden md:flex gap-4 text-sm">
       <a href="#tutorial" class="hover:text-blue-600">Tutorial</a>
       <a href="#explanations" class="hover:text-blue-600">Explanations</a>
+      <a href="#helm-tools" class="hover:text-blue-600">Helm &amp; Tools</a>
+      <a href="#scenarios" class="hover:text-blue-600">Scenarios</a>
       <a href="#resources" class="hover:text-blue-600">Resources</a>
     </div>
   </div>
@@ -418,10 +420,511 @@ kind delete cluster --name demo</pre>
   </div>
 </section>
 
+<!-- HELM & TOOLS SECTION -->
+<section id="helm-tools" class="mb-16">
+  <h2 class="text-3xl font-bold text-slate-900 mb-2">Part 3 · Helm &amp; Tools for Defining Kubernetes</h2>
+  <p class="text-slate-600 mb-8">Raw YAML works for a few files, but real apps have dozens of manifests across multiple environments. These tools solve that.</p>
+
+  <!-- HELM HERO CARD -->
+  <div class="bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-2xl p-8 mb-8 shadow-lg">
+    <div class="flex items-start gap-4">
+      <div class="text-5xl">⎈</div>
+      <div class="flex-1">
+        <h3 class="text-2xl font-bold mb-2">Helm — The Package Manager for Kubernetes</h3>
+        <p class="text-indigo-100 mb-4">
+          Helm is to Kubernetes what <strong>apt</strong> is to Ubuntu or <strong>brew</strong> is to macOS.
+          Instead of writing 10 raw YAML files, you write a <strong>chart</strong> — a parameterized template bundle — and install it with one command.
+          Change the values file, get a different deployment. It's how 90% of the K8s ecosystem ships software.
+        </p>
+        <div class="flex flex-wrap gap-2">
+          <span class="px-3 py-1 bg-white/20 rounded-full text-xs">Templates</span>
+          <span class="px-3 py-1 bg-white/20 rounded-full text-xs">Versioning</span>
+          <span class="px-3 py-1 bg-white/20 rounded-full text-xs">Rollbacks</span>
+          <span class="px-3 py-1 bg-white/20 rounded-full text-xs">Dependencies</span>
+        </div>
+        <div class="mt-4 flex flex-wrap gap-3">
+          <a href="https://helm.sh" target="_blank" class="bg-white text-indigo-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-50">📖 helm.sh</a>
+          <button onclick="openModal('deep-helm')" class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-semibold border border-white/30">✨ Show Me More</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HELM QUICK EXAMPLE -->
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+    <h3 class="text-lg font-semibold mb-3">Helm in 30 seconds</h3>
+    <pre class="bg-slate-900 text-green-300 p-4 rounded-lg text-sm overflow-x-auto"># Install Helm
+brew install helm
+
+# Add a chart repository
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+
+# Install PostgreSQL in one command (no YAML writing!)
+helm install my-db bitnami/postgresql \
+  --set auth.postgresPassword=secret123 \
+  --set primary.persistence.size=10Gi
+
+# List what you've installed
+helm list
+
+# Upgrade with new values
+helm upgrade my-db bitnami/postgresql --set primary.persistence.size=20Gi
+
+# Rollback instantly if something breaks
+helm rollback my-db 1
+
+# Uninstall everything cleanly
+helm uninstall my-db</pre>
+  </div>
+
+  <!-- OTHER TOOLS GRID -->
+  <h3 class="text-2xl font-bold text-slate-900 mb-4">Other Tools to Define K8s</h3>
+  <p class="text-slate-600 mb-6">Helm isn't the only option. Each of these solves a slightly different problem.</p>
+
+  <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🎨</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Kustomize</h4>
+      <p class="text-xs text-slate-600 mb-3">Overlay-based patching. Built into kubectl. No templating — just base YAML + patches per environment.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://kustomize.io" target="_blank" class="text-blue-600 text-xs hover:underline">kustomize.io →</a>
+        <button onclick="openModal('deep-kustomize')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🚀</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Argo CD</h4>
+      <p class="text-xs text-slate-600 mb-3">GitOps controller. Watches a Git repo and auto-syncs any YAML/Helm/Kustomize changes to your cluster.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://argo-cd.readthedocs.io" target="_blank" class="text-blue-600 text-xs hover:underline">argo-cd docs →</a>
+        <button onclick="openModal('deep-argocd')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🔄</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Flux CD</h4>
+      <p class="text-xs text-slate-600 mb-3">Another GitOps engine, CNCF graduated. Native Helm &amp; Kustomize support, multi-tenant friendly.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://fluxcd.io" target="_blank" class="text-blue-600 text-xs hover:underline">fluxcd.io →</a>
+        <button onclick="openModal('deep-flux')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🏗️</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Terraform</h4>
+      <p class="text-xs text-slate-600 mb-3">Infrastructure-as-code for everything — cloud VMs, databases, AND K8s resources via the Kubernetes provider.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://www.terraform.io" target="_blank" class="text-blue-600 text-xs hover:underline">terraform.io →</a>
+        <button onclick="openModal('deep-terraform')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🌊</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Pulumi</h4>
+      <p class="text-xs text-slate-600 mb-3">Write K8s manifests in real programming languages — TypeScript, Python, Go, C#. No YAML at all.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://www.pulumi.com" target="_blank" class="text-blue-600 text-xs hover:underline">pulumi.com →</a>
+        <button onclick="openModal('deep-pulumi')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🎯</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Jsonnet / CUE</h4>
+      <p class="text-xs text-slate-600 mb-3">Data-templating languages favored by Google/Grafana Labs. More type-safe than Helm's Go templates.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://cuelang.org" target="_blank" class="text-blue-600 text-xs hover:underline">cuelang.org →</a>
+        <button onclick="openModal('deep-jsonnet')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">⚡</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Skaffold</h4>
+      <p class="text-xs text-slate-600 mb-3">Google's dev loop tool — builds images, deploys to K8s, and hot-reloads on file changes. Great with kind.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://skaffold.dev" target="_blank" class="text-blue-600 text-xs hover:underline">skaffold.dev →</a>
+        <button onclick="openModal('deep-skaffold')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🔧</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Tilt</h4>
+      <p class="text-xs text-slate-600 mb-3">Microservice dev environment — Tiltfiles define multi-service setups with one command. Live UI included.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://tilt.dev" target="_blank" class="text-blue-600 text-xs hover:underline">tilt.dev →</a>
+        <button onclick="openModal('deep-tilt')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="text-3xl mb-2">🌐</div>
+      <h4 class="font-semibold text-slate-900 mb-1">Crossplane</h4>
+      <p class="text-xs text-slate-600 mb-3">Manage cloud infra (RDS, S3, GCS) as K8s resources. "Everything is a CRD" philosophy.</p>
+      <div class="flex justify-between items-center">
+        <a href="https://www.crossplane.io" target="_blank" class="text-blue-600 text-xs hover:underline">crossplane.io →</a>
+        <button onclick="openModal('deep-crossplane')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded hover:shadow">✨ More</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- SCENARIOS SECTION -->
+<section id="scenarios" class="mb-16">
+  <h2 class="text-3xl font-bold text-slate-900 mb-2">Part 4 · Real Scenarios</h2>
+  <p class="text-slate-600 mb-8">Two worked examples: a simple HA static site, and a production-style 3-tier app.</p>
+
+  <!-- SCENARIO 1: SIMPLE FAILOVER -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-10">
+    <div class="flex items-start justify-between mb-4">
+      <div>
+        <div class="inline-block bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded mb-2">SCENARIO 1 · BEGINNER</div>
+        <h3 class="text-2xl font-bold text-slate-900">Simple HTML Site with Failover</h3>
+        <p class="text-slate-600 text-sm mt-1">A static HTML page that keeps serving even if a pod (or whole node) dies.</p>
+      </div>
+      <button onclick="openModal('scenario-simple')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium px-4 py-2 rounded-lg hover:shadow-md">✨ Deep Dive</button>
+    </div>
+
+    <h4 class="font-semibold text-slate-900 mt-4 mb-2">The failover ingredients</h4>
+    <ul class="list-disc pl-6 text-sm text-slate-700 space-y-1 mb-4">
+      <li><strong>replicas: 3</strong> — three pods, so losing one doesn't interrupt service</li>
+      <li><strong>podAntiAffinity</strong> — spread pods across different nodes</li>
+      <li><strong>livenessProbe</strong> — restart stuck containers automatically</li>
+      <li><strong>readinessProbe</strong> — don't send traffic to pods that aren't ready</li>
+      <li><strong>PodDisruptionBudget</strong> — guarantee at least 2 pods stay up during maintenance</li>
+    </ul>
+
+    <p class="text-slate-600 text-sm mb-2"><strong>nginx-ha.yaml</strong>:</p>
+    <pre class="bg-slate-900 text-blue-200 p-4 rounded-lg text-xs overflow-x-auto">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-ha
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx-ha
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: nginx-ha
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: nginx-ha
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          volumeMounts:
+            - name: html
+              mountPath: /usr/share/nginx/html
+      volumes:
+        - name: html
+          configMap:
+            name: html-content
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-ha
+spec:
+  type: NodePort
+  selector:
+    app: nginx-ha
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30080
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: nginx-ha-pdb
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: nginx-ha</pre>
+
+    <h4 class="font-semibold text-slate-900 mt-4 mb-2">Try the failover yourself</h4>
+    <pre class="bg-slate-900 text-green-300 p-4 rounded-lg text-xs overflow-x-auto">kubectl apply -f nginx-ha.yaml
+
+# Verify 3 pods running
+kubectl get pods -l app=nginx-ha
+
+# Simulate a pod crash — deployment auto-replaces it
+kubectl delete pod -l app=nginx-ha --field-selector=status.phase=Running | head -n1
+
+# Watch it recover
+kubectl get pods -l app=nginx-ha -w
+
+# Test with continuous curl while killing pods
+while true; do curl -s http://localhost:8080 | grep -o "Hello"; sleep 0.5; done</pre>
+  </div>
+
+  <!-- SCENARIO 2: COMPLEX APP -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+    <div class="flex items-start justify-between mb-4">
+      <div>
+        <div class="inline-block bg-red-100 text-red-800 text-xs font-semibold px-2 py-1 rounded mb-2">SCENARIO 2 · ADVANCED</div>
+        <h3 class="text-2xl font-bold text-slate-900">3-Tier App: Frontend + API + Database</h3>
+        <p class="text-slate-600 text-sm mt-1">A realistic production-style setup: React/Vue frontend, Node/Python API, PostgreSQL database, all wired together.</p>
+      </div>
+      <button onclick="openModal('scenario-complex')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium px-4 py-2 rounded-lg hover:shadow-md">✨ Deep Dive</button>
+    </div>
+
+    <h4 class="font-semibold text-slate-900 mt-4 mb-2">Architecture at a glance</h4>
+    <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4 font-mono text-xs text-slate-700">
+<pre>  Internet
+     │
+     ▼
+  [ Ingress ]  ← TLS termination, routing
+     │
+     ├─── /           → [ Frontend Deployment ]  (nginx + built SPA, 3 replicas)
+     │
+     └─── /api/*      → [ API Deployment ]       (Node/Python, 3 replicas)
+                              │
+                              ▼
+                       [ Postgres Service ]
+                              │
+                              ▼
+                       [ StatefulSet ]           (1 primary, persistent volume)
+                              │
+                              ▼
+                       [ PersistentVolumeClaim ] (10 GiB disk)
+
+  Plus: [ Secret (db creds) ]  [ ConfigMap (api config) ]  [ HPA (autoscale) ]</pre>
+    </div>
+
+    <h4 class="font-semibold text-slate-900 mb-2">The pieces you'd deploy</h4>
+    <div class="grid md:grid-cols-3 gap-3 mb-4">
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+        <div class="font-semibold text-blue-900 text-sm">🖥️ Frontend</div>
+        <div class="text-xs text-blue-800 mt-1">Deployment · Service · HPA · ConfigMap (env.js)</div>
+      </div>
+      <div class="bg-purple-50 border border-purple-200 rounded-lg p-3">
+        <div class="font-semibold text-purple-900 text-sm">⚙️ API</div>
+        <div class="text-xs text-purple-800 mt-1">Deployment · Service · HPA · ConfigMap · Secret</div>
+      </div>
+      <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+        <div class="font-semibold text-green-900 text-sm">🗄️ Database</div>
+        <div class="text-xs text-green-800 mt-1">StatefulSet · Headless Service · PVC · Secret</div>
+      </div>
+    </div>
+
+    <p class="text-slate-600 text-sm mb-2"><strong>Excerpted manifests</strong> (full file is ~300 lines — the key parts):</p>
+    <pre class="bg-slate-900 text-blue-200 p-4 rounded-lg text-xs overflow-x-auto"># --- DATABASE (StatefulSet for stable identity + persistent disk) ---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels: { app: postgres }
+  template:
+    metadata:
+      labels: { app: postgres }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: appdb
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef: { name: db-creds, key: username }
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: db-creds, key: password }
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests: { storage: 10Gi }
+---
+# --- API Deployment ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: api }
+  template:
+    metadata:
+      labels: { app: api }
+    spec:
+      containers:
+        - name: api
+          image: myorg/api:v1.2.0
+          ports:
+            - containerPort: 3000
+          env:
+            - name: DATABASE_URL
+              value: "postgres://$(DB_USER):$(DB_PASS)@postgres:5432/appdb"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef: { name: db-creds, key: username }
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef: { name: db-creds, key: password }
+          readinessProbe:
+            httpGet: { path: /health, port: 3000 }
+          livenessProbe:
+            httpGet: { path: /health, port: 3000 }
+            initialDelaySeconds: 15
+---
+# --- FRONTEND Deployment ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: frontend }
+  template:
+    metadata:
+      labels: { app: frontend }
+    spec:
+      containers:
+        - name: web
+          image: myorg/frontend:v1.2.0
+          ports:
+            - containerPort: 80
+---
+# --- INGRESS (routes / to frontend, /api/* to api) ---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - host: myapp.local
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port: { number: 3000 }
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port: { number: 80 }
+---
+# --- HPA autoscaling for API ---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70</pre>
+
+    <h4 class="font-semibold text-slate-900 mt-4 mb-2">The Helm version (much shorter)</h4>
+    <pre class="bg-slate-900 text-green-300 p-4 rounded-lg text-xs overflow-x-auto"># Instead of 300 lines of YAML, use a Helm chart:
+helm repo add bitnami https://charts.bitnami.com/bitnami
+
+# Install Postgres
+helm install db bitnami/postgresql \
+  --set auth.database=appdb \
+  --set primary.persistence.size=10Gi
+
+# Install your own chart
+helm install myapp ./charts/myapp \
+  --values values-prod.yaml \
+  --set api.image.tag=v1.2.0 \
+  --set frontend.image.tag=v1.2.0</pre>
+  </div>
+</section>
+
 <!-- RESOURCES -->
 <section id="resources" class="mb-16">
-  <h2 class="text-3xl font-bold text-slate-900 mb-6">Part 3 · Official Documentation</h2>
+  <h2 class="text-3xl font-bold text-slate-900 mb-6">Part 5 · Official Documentation</h2>
   <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <a href="https://helm.sh/docs/" target="_blank" class="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition">
+      <h4 class="font-semibold text-slate-900">Helm Docs</h4>
+      <p class="text-sm text-slate-600 mt-1">Official Helm documentation and guides.</p>
+    </a>
+    <a href="https://artifacthub.io" target="_blank" class="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition">
+      <h4 class="font-semibold text-slate-900">Artifact Hub</h4>
+      <p class="text-sm text-slate-600 mt-1">Browse 10,000+ Helm charts ready to install.</p>
+    </a>
+    <a href="https://kustomize.io" target="_blank" class="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition">
+      <h4 class="font-semibold text-slate-900">Kustomize</h4>
+      <p class="text-sm text-slate-600 mt-1">Built-in kubectl overlay tool.</p>
+    </a>
+    <a href="https://argo-cd.readthedocs.io" target="_blank" class="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition">
+      <h4 class="font-semibold text-slate-900">Argo CD</h4>
+      <p class="text-sm text-slate-600 mt-1">Declarative GitOps for Kubernetes.</p>
+    </a>
     <a href="https://kubernetes.io/docs/home/" target="_blank" class="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition">
       <h4 class="font-semibold text-slate-900">Kubernetes Docs</h4>
       <p class="text-sm text-slate-600 mt-1">The official K8s documentation home.</p>
@@ -947,6 +1450,527 @@ spec:
         <li><strong>Every K8s course, book, and tutorial</strong> — YAML is the lingua franca of the entire ecosystem.</li>
       </ul>
       <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://kubernetes.io/docs/concepts/overview/working-with-objects/" target="_blank" class="text-blue-600 hover:underline">K8s objects reference</a></p>`
+  },
+
+  // ============ HELM & TOOLS MODALS ============
+  'deep-helm': {
+    title: '⎈ Helm — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>Helm is the de facto package manager for Kubernetes. A <strong>chart</strong> is a directory of templated YAML files with a <code class="bg-slate-100 px-1 rounded">values.yaml</code> that holds defaults. At install time, Helm renders the templates by substituting values, then sends the resulting manifests to the K8s API. Each install is called a <strong>release</strong>, and Helm stores release history as Secrets in the cluster — that's what enables rollbacks. It's a CNCF graduated project, originally from Deis (acquired by Microsoft).</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Chart structure</h4>
+      <pre class="bg-slate-900 text-blue-200 p-3 rounded text-xs overflow-x-auto">mychart/
+├── Chart.yaml          # name, version, description
+├── values.yaml         # default config values
+├── templates/
+│   ├── deployment.yaml # uses {{ .Values.image.tag }}
+│   ├── service.yaml
+│   ├── ingress.yaml
+│   └── _helpers.tpl    # reusable template snippets
+└── charts/             # dependency charts</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Template example</h4>
+      <pre class="bg-slate-900 text-green-300 p-3 rounded text-xs overflow-x-auto">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-app
+spec:
+  replicas: {{ .Values.replicaCount }}
+  template:
+    spec:
+      containers:
+        - name: app
+          image: "{{ .Values.image.repo }}:{{ .Values.image.tag }}"
+          {{- if .Values.resources }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- end }}</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Bitnami (VMware)</strong> — maintains hundreds of production-ready charts for PostgreSQL, Redis, Kafka, WordPress, etc.</li>
+        <li><strong>Grafana Labs</strong> — ships Grafana, Loki, Tempo, Mimir all as Helm charts.</li>
+        <li><strong>Prometheus community</strong> — kube-prometheus-stack is one of the most-installed charts in existence.</li>
+        <li><strong>IBM, Red Hat, Microsoft Azure</strong> — use Helm as the packaging standard for operators and platform add-ons.</li>
+        <li><strong>Nearly every SaaS K8s vendor</strong> — Datadog, New Relic, Elastic, HashiCorp all distribute agents and operators via Helm charts.</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://artifacthub.io" target="_blank" class="text-blue-600 hover:underline">Artifact Hub — 10,000+ charts</a> · <a href="https://helm.sh/docs/topics/charts/" target="_blank" class="text-blue-600 hover:underline">Chart authoring guide</a></p>`
+  },
+
+  'deep-kustomize': {
+    title: '🎨 Kustomize — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>Kustomize takes a completely different approach from Helm: <strong>no templates, no placeholders</strong>. You write plain, valid YAML as a "base" and then apply strategic merge patches for each environment (dev, staging, prod). Since Kubernetes 1.14, Kustomize is built into kubectl — use <code class="bg-slate-100 px-1 rounded">kubectl apply -k</code>. It was created by Google specifically because Helm templating got messy at scale.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Directory structure</h4>
+      <pre class="bg-slate-900 text-blue-200 p-3 rounded text-xs overflow-x-auto">myapp/
+├── base/
+│   ├── kustomization.yaml
+│   ├── deployment.yaml
+│   └── service.yaml
+└── overlays/
+    ├── dev/
+    │   ├── kustomization.yaml
+    │   └── replica-patch.yaml     # replicas: 1
+    └── prod/
+        ├── kustomization.yaml
+        └── replica-patch.yaml     # replicas: 10</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Usage</h4>
+      <pre class="bg-slate-900 text-green-300 p-3 rounded text-xs overflow-x-auto"># Preview the rendered YAML
+kubectl kustomize ./overlays/prod
+
+# Apply directly
+kubectl apply -k ./overlays/prod
+
+# Common features: image replacement, name prefixes, label injection
+# In kustomization.yaml:
+namePrefix: prod-
+commonLabels:
+  environment: production
+images:
+  - name: myapp
+    newTag: v1.5.0</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Google Cloud</strong> — their internal K8s deployments and Anthos platform use Kustomize heavily.</li>
+        <li><strong>OpenShift / Red Hat</strong> — Operators ship Kustomize-based install bundles.</li>
+        <li><strong>Argo CD</strong> — natively supports Kustomize; many GitOps shops prefer it over Helm.</li>
+        <li><strong>Teams that hate Go templates</strong> — Kustomize is valid YAML all the way down, so editors give you full autocomplete.</li>
+        <li><strong>Platform engineering teams at BBC, Spotify</strong> — use Kustomize for environment promotion pipelines.</li>
+      </ul>`
+  },
+
+  'deep-argocd': {
+    title: '🚀 Argo CD — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>Argo CD is a <strong>GitOps</strong> controller that runs inside your cluster. You point it at a Git repo containing K8s manifests (plain YAML, Helm, or Kustomize), and it continuously syncs the cluster to match Git. If someone manually edits a resource, Argo sees the drift and either alerts or reverts. It ships with a beautiful web UI showing health status, sync status, and a resource tree. CNCF graduated, originally built at Intuit.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Example Application manifest</h4>
+      <pre class="bg-slate-900 text-blue-200 p-3 rounded text-xs overflow-x-auto">apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: myapp-prod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/mycompany/k8s-manifests
+    targetRevision: main
+    path: apps/myapp/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: myapp
+  syncPolicy:
+    automated:
+      prune: true        # delete removed resources
+      selfHeal: true     # revert drift automatically</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Intuit</strong> (creators) — runs all of TurboTax and QuickBooks on Argo CD-managed clusters.</li>
+        <li><strong>Tesla</strong> — manages fleet infrastructure with Argo CD.</li>
+        <li><strong>BlackRock, Capital One</strong> — financial services use Argo for audit-friendly deployments (every change is a Git commit).</li>
+        <li><strong>Adobe, IBM, Red Hat</strong> — Argo CD is embedded in their platform offerings.</li>
+        <li><strong>Any team doing "GitOps"</strong> — the workflow: PR → review → merge → cluster updates automatically.</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://argo-cd.readthedocs.io" target="_blank" class="text-blue-600 hover:underline">Argo CD docs</a></p>`
+  },
+
+  'deep-flux': {
+    title: '🔄 Flux CD — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>Flux is the other major CNCF GitOps controller. Where Argo CD has a rich UI, Flux is more API/CLI-first and tends to be favored by teams who want a smaller footprint. Flux v2 is built from composable "toolkit" controllers (Source, Kustomize, Helm, Notification, Image Automation) that you mix and match. Originally created at Weaveworks (who coined the term "GitOps").</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Example: sync a Git repo</h4>
+      <pre class="bg-slate-900 text-blue-200 p-3 rounded text-xs overflow-x-auto">apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: myapp
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: https://github.com/mycompany/k8s-manifests
+  ref:
+    branch: main
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: myapp
+  namespace: flux-system
+spec:
+  interval: 5m
+  path: "./apps/myapp/prod"
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: myapp</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Weaveworks</strong> (creators) — ran their entire SaaS platform on Flux before the company wound down.</li>
+        <li><strong>MaxMind, Babylon Health, Mettle</strong> — documented Flux production users.</li>
+        <li><strong>SAP, Deutsche Telekom</strong> — use Flux for multi-cluster fleet management.</li>
+        <li><strong>Microsoft Azure Arc</strong> — Flux is the GitOps engine for Azure's managed K8s fleet service.</li>
+        <li><strong>Teams wanting minimal UI overhead</strong> — Flux does everything Argo does but without the web dashboard.</li>
+      </ul>`
+  },
+
+  'deep-terraform': {
+    title: '🏗️ Terraform — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>Terraform is HashiCorp's general-purpose Infrastructure-as-Code tool. It uses HCL (HashiCorp Configuration Language) to describe resources, then figures out what to create/update/delete based on diffing a state file against your config. With the <strong>Kubernetes provider</strong>, you can manage K8s resources alongside AWS/GCP/Azure infrastructure in the same workflow. Great for "I need an EKS cluster + RDS database + K8s app deployed together" scenarios.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Example: Terraform-managed K8s deployment</h4>
+      <pre class="bg-slate-900 text-green-300 p-3 rounded text-xs overflow-x-auto">resource "kubernetes_deployment" "nginx" {
+  metadata {
+    name = "nginx"
+  }
+  spec {
+    replicas = 3
+    selector {
+      match_labels = { app = "nginx" }
+    }
+    template {
+      metadata {
+        labels = { app = "nginx" }
+      }
+      spec {
+        container {
+          image = "nginx:alpine"
+          name  = "nginx"
+          port {
+            container_port = 80
+          }
+        }
+      }
+    }
+  }
+}
+
+# Helm releases too:
+resource "helm_release" "postgres" {
+  name       = "my-db"
+  repository = "https://charts.bitnami.com/bitnami"
+  chart      = "postgresql"
+  values     = [file("values.yaml")]
+}</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Basically every cloud-native company</strong> — Terraform is the dominant IaC tool globally.</li>
+        <li><strong>Netflix, Uber, Lyft</strong> — provision cloud infrastructure with Terraform, then layer K8s on top.</li>
+        <li><strong>GitHub, GitLab</strong> — use Terraform for their SaaS infrastructure.</li>
+        <li><strong>Startups on AWS/GCP</strong> — common pattern: Terraform for EKS/GKE + cloud resources, then Helm/Argo for apps.</li>
+        <li><strong>HashiCorp Terraform Cloud</strong> — SaaS offering used by teams that want remote state + collaboration.</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">⚠️ Note: After HashiCorp's license change in 2023, many teams are migrating to <strong>OpenTofu</strong>, a drop-in open-source fork.</p>`
+  },
+
+  'deep-pulumi': {
+    title: '🌊 Pulumi — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>Pulumi asks a radical question: "why are we writing YAML and HCL instead of real code?" It lets you define K8s resources (and cloud infra) in TypeScript, Python, Go, C#, Java, or YAML. You get loops, conditionals, functions, IDE autocomplete, unit tests, and package reuse — all the things real programming languages give you. It stores state remotely like Terraform and can even import existing Helm charts.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">TypeScript example</h4>
+      <pre class="bg-slate-900 text-green-300 p-3 rounded text-xs overflow-x-auto">import * as k8s from "@pulumi/kubernetes";
+
+const appLabels = { app: "nginx" };
+
+const deployment = new k8s.apps.v1.Deployment("nginx", {
+  spec: {
+    replicas: 3,
+    selector: { matchLabels: appLabels },
+    template: {
+      metadata: { labels: appLabels },
+      spec: {
+        containers: [{
+          name: "nginx",
+          image: "nginx:alpine",
+          ports: [{ containerPort: 80 }],
+        }],
+      },
+    },
+  },
+});
+
+// Actual logic! Deploy differently based on env:
+const env = process.env.ENV || "dev";
+const replicas = env === "prod" ? 10 : 2;</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Snowflake, Mercedes-Benz, Atlassian</strong> — public Pulumi case studies.</li>
+        <li><strong>Teams with strong TypeScript/Python cultures</strong> — engineers don't need to learn a new DSL.</li>
+        <li><strong>Platform teams building internal developer platforms</strong> — Pulumi Automation API lets you build higher-level abstractions.</li>
+        <li><strong>Startups</strong> — appeals to full-stack devs who want one language for frontend, backend, AND infra.</li>
+      </ul>`
+  },
+
+  'deep-jsonnet': {
+    title: '🎯 Jsonnet / CUE — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What they really are</h4>
+      <p><strong>Jsonnet</strong> is a data-templating language invented at Google — it's like JSON with variables, functions, and imports. <strong>CUE</strong> is a newer language that adds type constraints and validation, making invalid configs impossible to write. Both were created because teams at massive scale found Helm templates too error-prone. They're niche but powerful.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">CUE example</h4>
+      <pre class="bg-slate-900 text-green-300 p-3 rounded text-xs overflow-x-auto">// Types enforced at compile time
+#Deployment: {
+    apiVersion: "apps/v1"
+    kind:       "Deployment"
+    metadata: name: string
+    spec: {
+        replicas: int & >=1 & <=100   // constraint!
+        template: spec: containers: [...{
+            name:  string
+            image: string
+        }]
+    }
+}
+
+nginx: #Deployment & {
+    metadata: name: "nginx"
+    spec: {
+        replicas: 3
+        template: spec: containers: [{
+            name:  "nginx"
+            image: "nginx:alpine"
+        }]
+    }
+}</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses them</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Google</strong> — Jsonnet came from Google; Borg configs inspired Kubernetes itself.</li>
+        <li><strong>Grafana Labs</strong> — maintains Tanka, a Jsonnet-based K8s deployment tool, and uses it for their own SaaS.</li>
+        <li><strong>Databricks</strong> — uses Jsonnet for multi-cloud K8s configs.</li>
+        <li><strong>CUE adopters</strong> — Istio uses CUE internally, and the KubeVela platform is built on it.</li>
+        <li><strong>Teams burned by Helm template bugs</strong> — those who've had "oops, missing quote produced 10x the resources" incidents.</li>
+      </ul>`
+  },
+
+  'deep-skaffold': {
+    title: '⚡ Skaffold — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>Skaffold is Google's developer-inner-loop tool for Kubernetes. You run <code class="bg-slate-100 px-1 rounded">skaffold dev</code>, and it watches your source code, rebuilds the Docker image on change, redeploys to your (usually local kind or minikube) cluster, and tails logs — all automatically. It turns K8s development from a 10-minute cycle into a 10-second one. Supports Helm, Kustomize, and raw YAML as deployment methods.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">skaffold.yaml</h4>
+      <pre class="bg-slate-900 text-blue-200 p-3 rounded text-xs overflow-x-auto">apiVersion: skaffold/v4beta7
+kind: Config
+metadata:
+  name: myapp
+build:
+  artifacts:
+    - image: myapp
+      context: .
+      docker:
+        dockerfile: Dockerfile
+deploy:
+  kubectl: {}
+manifests:
+  rawYaml:
+    - k8s/deployment.yaml
+    - k8s/service.yaml
+portForward:
+  - resourceType: service
+    resourceName: myapp
+    port: 80
+    localPort: 8080</pre>
+
+      <pre class="bg-slate-900 text-green-300 p-3 rounded text-xs overflow-x-auto">skaffold dev        # watch & redeploy on change
+skaffold run        # one-shot build + deploy
+skaffold debug      # attach debugger</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Google Cloud</strong> — Skaffold is integrated into Cloud Code (VS Code/IntelliJ extension).</li>
+        <li><strong>Teams at Pinterest, Snap</strong> — for microservice local development.</li>
+        <li><strong>Bootcamps and K8s training</strong> — common tool for teaching the inner dev loop.</li>
+        <li><strong>Backend developers new to K8s</strong> — hides most of the complexity of rebuilding and redeploying.</li>
+      </ul>`
+  },
+
+  'deep-tilt': {
+    title: '🔧 Tilt — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>Tilt is like Skaffold on steroids, optimized for microservice monorepos. You write a <code class="bg-slate-100 px-1 rounded">Tiltfile</code> in Starlark (Python-ish) describing how to build and deploy every service, and Tilt gives you a web UI showing the status of every service, live logs, and one-click restart buttons. Originally built because a team of 5 engineers needed to run 20 microservices locally without losing their minds.</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Tiltfile example</h4>
+      <pre class="bg-slate-900 text-green-300 p-3 rounded text-xs overflow-x-auto"># Tiltfile
+docker_build('myorg/api', './api')
+docker_build('myorg/frontend', './frontend')
+
+k8s_yaml(['k8s/api.yaml', 'k8s/frontend.yaml'])
+
+k8s_resource('api', port_forwards=3000)
+k8s_resource('frontend', port_forwards=8080)
+
+# Live-update: sync files directly into container
+# without rebuilding the image
+docker_build('myorg/api', './api',
+  live_update=[
+    sync('./api/src', '/app/src'),
+    run('npm install', trigger='./api/package.json'),
+  ]
+)</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Lyft</strong> — uses Tilt for their large microservices monorepo development.</li>
+        <li><strong>Cruise, Instacart, Grubhub</strong> — documented Tilt users.</li>
+        <li><strong>Any team with 5+ microservices</strong> — Tilt shines where docker-compose starts breaking down.</li>
+        <li><strong>Platform teams</strong> — can ship a single Tiltfile that gives every engineer the same local dev environment.</li>
+      </ul>`
+  },
+
+  'deep-crossplane': {
+    title: '🌐 Crossplane — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">What it really is</h4>
+      <p>Crossplane's big idea: <strong>everything is a Kubernetes resource</strong>, including cloud infrastructure. Install the AWS provider, and suddenly you can <code class="bg-slate-100 px-1 rounded">kubectl apply</code> an RDS database, an S3 bucket, or an IAM role. It's a competitor to Terraform, but K8s-native — the control plane, reconciliation, and state all live in your cluster. You can then build "composite resources" that bundle infra + app (e.g., "a PostgreSQL Crossplane claim gives you an AWS RDS instance + a K8s Secret with credentials + a Service").</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Example: RDS via kubectl</h4>
+      <pre class="bg-slate-900 text-blue-200 p-3 rounded text-xs overflow-x-auto">apiVersion: rds.aws.upbound.io/v1beta1
+kind: DBInstance
+metadata:
+  name: myapp-db
+spec:
+  forProvider:
+    region: us-east-1
+    dbInstanceClass: db.t3.micro
+    engine: postgres
+    engineVersion: "15.3"
+    allocatedStorage: 20
+    masterUsername: admin
+    autoGeneratePassword: true
+    publiclyAccessible: false
+  writeConnectionSecretToRef:
+    name: myapp-db-conn
+    namespace: default</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">🏢 Who uses it</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Upbound</strong> (creators) — commercial Crossplane platform.</li>
+        <li><strong>Accenture, Autodesk, Deutsche Bahn</strong> — documented adopters.</li>
+        <li><strong>Platform engineering teams</strong> — building internal developer platforms where devs self-serve databases via simple CRDs.</li>
+        <li><strong>Multi-cloud shops</strong> — one Crossplane control plane can manage AWS + GCP + Azure resources uniformly.</li>
+        <li><strong>CNCF incubating project</strong> — growing fast as "Terraform alternative for K8s-native teams."</li>
+      </ul>`
+  },
+
+  // ============ SCENARIO MODALS ============
+  'scenario-simple': {
+    title: '🟢 Simple HTML Failover — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">Why this setup survives failures</h4>
+      <p>The magic isn't any single feature — it's the combination of five K8s primitives working together:</p>
+
+      <ol class="list-decimal pl-5 space-y-2 mt-2">
+        <li><strong>Multiple replicas (replicas: 3)</strong> — If one pod crashes, two are still serving traffic. The Deployment controller immediately creates a replacement.</li>
+        <li><strong>podAntiAffinity</strong> — Tells the scheduler "please don't put two of these pods on the same node." So losing a whole node only loses one pod, not all three.</li>
+        <li><strong>Readiness probe</strong> — Before a new pod receives traffic from the Service, K8s confirms it actually responds to HTTP. No "half-started" pods break the rotation.</li>
+        <li><strong>Liveness probe</strong> — If a container gets wedged (deadlock, memory leak causing hang), K8s restarts just that container automatically.</li>
+        <li><strong>PodDisruptionBudget (minAvailable: 2)</strong> — Prevents voluntary disruptions (like node drains during upgrades) from dropping below 2 healthy pods.</li>
+      </ol>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">The rolling update story</h4>
+      <p>When you update the image (e.g., <code class="bg-slate-100 px-1 rounded">kubectl set image deploy/nginx-ha nginx=nginx:1.26</code>), the Deployment does this dance:</p>
+      <pre class="bg-slate-900 text-green-300 p-3 rounded text-xs overflow-x-auto">Start state:  [v1] [v1] [v1]
+Step 1:       [v1] [v1] [v1] [v2 starting]   ← maxSurge: 1
+Step 2:       [v1] [v1] [v2]                  ← old pod terminated
+Step 3:       [v1] [v1] [v2] [v2 starting]
+Step 4:       [v1] [v2] [v2]
+...
+End state:    [v2] [v2] [v2]
+# Traffic never dropped below 2 healthy pods</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Real-world use cases</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Marketing landing pages, documentation sites, status pages</strong> — low compute, must never go down.</li>
+        <li><strong>Static SPA frontends</strong> (React/Vue/Angular builds served by nginx) — most frontend apps use exactly this pattern.</li>
+        <li><strong>Reverse proxies in front of APIs</strong> — nginx config and TLS certs loaded from ConfigMaps/Secrets.</li>
+        <li><strong>CDN origins</strong> — Cloudflare/Fastly pull from a K8s-hosted origin that needs HA.</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Going further</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li>Add <strong>HorizontalPodAutoscaler</strong> to scale based on CPU.</li>
+        <li>Add <strong>topologySpreadConstraints</strong> for multi-AZ spreading on real clouds.</li>
+        <li>Put <strong>Ingress + cert-manager</strong> in front for TLS.</li>
+        <li>Use <strong>image pull policy: Always</strong> + image digests to pin exact versions.</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://kubernetes.io/docs/concepts/workloads/pods/disruptions/" target="_blank" class="text-blue-600 hover:underline">Pod Disruption Budgets</a> · <a href="https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity" target="_blank" class="text-blue-600 hover:underline">Pod (anti-)affinity</a></p>`
+  },
+
+  'scenario-complex': {
+    title: '🔴 3-Tier App Architecture — Deep Dive',
+    body: `
+      <h4 class="font-bold text-slate-900 text-base">Why each component is shaped the way it is</h4>
+
+      <p><strong>Frontend (Deployment, 3 replicas):</strong> Stateless — any pod can handle any request. Deployments are perfect. Three replicas for HA. Often an nginx image serving a pre-built SPA bundle.</p>
+
+      <p><strong>API (Deployment + HPA, 3–20 replicas):</strong> Also stateless (session state is in the DB or Redis). Uses HorizontalPodAutoscaler because traffic varies — 3 pods at night, 20 pods at peak. Connects to the database via its K8s Service DNS name (<code class="bg-slate-100 px-1 rounded">postgres:5432</code>).</p>
+
+      <p><strong>Database (StatefulSet, 1 replica + PVC):</strong> This is the only stateful piece. StatefulSet gives each pod a stable network identity (<code class="bg-slate-100 px-1 rounded">postgres-0</code>) and a persistent volume that survives pod restarts. You can't casually scale a single Postgres instance — real HA requires replication setup (see below).</p>
+
+      <p><strong>Secrets:</strong> Database credentials live in a K8s Secret. The API pods reference it via <code class="bg-slate-100 px-1 rounded">envFrom.secretKeyRef</code>. Never hardcode passwords in manifests.</p>
+
+      <p><strong>Ingress:</strong> The single entry point. Routes <code class="bg-slate-100 px-1 rounded">/</code> to the frontend Service and <code class="bg-slate-100 px-1 rounded">/api/*</code> to the API Service. Handles TLS termination (usually with cert-manager + Let's Encrypt).</p>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Traffic flow</h4>
+      <pre class="bg-slate-900 text-green-300 p-3 rounded text-xs overflow-x-auto">User clicks "Save" in browser
+  ↓ HTTPS
+Ingress (nginx-ingress or Traefik)
+  ↓ routes /api/save → api Service
+API Service (ClusterIP) load-balances across API pods
+  ↓ pod receives request
+API pod reads env vars for DB creds
+  ↓ opens connection to postgres:5432
+Postgres Service resolves to postgres-0 pod
+  ↓
+StatefulSet pod writes to PVC (persistent disk)
+  ↓ commit success
+Response bubbles back up the chain</pre>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">What we left out (for simplicity)</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Real DB HA</strong> — for production, use an Operator like CloudNativePG, Zalando Postgres, or Crunchy Data. They handle replication, failover, and backups.</li>
+        <li><strong>Redis / cache layer</strong> — most real APIs put Redis between the API and DB for session storage and query caching.</li>
+        <li><strong>Message queue</strong> — Kafka or RabbitMQ for async workflows.</li>
+        <li><strong>Observability</strong> — Prometheus + Grafana for metrics, Loki or Elastic for logs, Jaeger for traces.</li>
+        <li><strong>NetworkPolicies</strong> — lock down which pods can talk to which (e.g., only the API can reach the DB).</li>
+        <li><strong>ResourceQuotas &amp; LimitRanges</strong> — prevent any one team from hogging cluster resources.</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">Real-world examples of this exact pattern</h4>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>SaaS dashboards</strong> — Retool, Metabase, Grafana Cloud all deploy a frontend + API + DB trio per tenant or per region.</li>
+        <li><strong>E-commerce</strong> — small to mid-size shops run Magento, Shopware, or custom storefronts this way.</li>
+        <li><strong>Content management</strong> — Strapi, Directus, Ghost deploy as frontend + headless API + Postgres.</li>
+        <li><strong>Internal tools</strong> — most corporate internal apps (HR portals, expense trackers, admin panels) follow this shape exactly.</li>
+        <li><strong>Early-stage startups</strong> — the default "MVP on K8s" architecture.</li>
+      </ul>
+
+      <h4 class="font-bold text-slate-900 text-base mt-3">How you'd actually ship this in production</h4>
+      <p>Nobody writes all 300 lines of YAML by hand. The real-world workflow:</p>
+      <ol class="list-decimal pl-5 space-y-1">
+        <li>Install Postgres via Helm (<code class="bg-slate-100 px-1 rounded">bitnami/postgresql</code> or a Postgres Operator).</li>
+        <li>Write a single Helm chart for your frontend + API (parameterized by image tag).</li>
+        <li>Store everything in a Git repo.</li>
+        <li>Argo CD or Flux watches Git and syncs changes automatically.</li>
+        <li>CI builds new images on commit, updates the image tag in Git, Argo picks it up → deployed.</li>
+      </ol>
+      <p class="text-xs text-slate-500 mt-2">🔗 <a href="https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/" target="_blank" class="text-blue-600 hover:underline">StatefulSets</a> · <a href="https://kubernetes.io/docs/concepts/services-networking/ingress/" target="_blank" class="text-blue-600 hover:underline">Ingress</a> · <a href="https://cloudnative-pg.io" target="_blank" class="text-blue-600 hover:underline">CloudNativePG Operator</a></p>`
   }
 };
 
