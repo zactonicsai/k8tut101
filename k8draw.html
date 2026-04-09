@@ -375,6 +375,17 @@ const COMPONENT_GROUPS = [
     ],
   },
   {
+    name: 'Temporal.io',
+    color: 'blue',
+    items: [
+      { type: 'TemporalServer', icon: '⏱', color: 'bg-sky-600',    desc: 'Temporal orchestration engine', preset: 'temporal_server' },
+      { type: 'TemporalWorker', icon: '⚙', color: 'bg-sky-500',    desc: 'Workflow & activity worker',    preset: 'temporal_worker' },
+      { type: 'TemporalClient', icon: '📡', color: 'bg-blue-500',   desc: 'App that starts workflows',    preset: 'temporal_client' },
+      { type: 'TemporalUI',     icon: '🖼', color: 'bg-blue-600',   desc: 'Temporal web UI',               preset: 'temporal_ui' },
+      { type: 'TemporalDB',     icon: '🗃', color: 'bg-indigo-700', desc: 'Postgres/Cassandra persistence', preset: 'temporal_db' },
+    ],
+  },
+  {
     name: 'Custom',
     color: 'slate',
     items: [
@@ -392,6 +403,12 @@ const APP_PRESETS = {
   doc:   { image: 'mongo:7',                     port: 27017, replicas: 1 },
   cache: { image: 'redis:7-alpine',              port: 6379,  replicas: 1 },
   mq:    { image: 'rabbitmq:3-management-alpine',port: 5672,  replicas: 1 },
+  // Temporal.io presets
+  temporal_server: { image: 'temporalio/auto-setup:1.25', port: 7233, replicas: 1, env: { DB: 'postgres12', DB_PORT: '5432', POSTGRES_USER: 'temporal', POSTGRES_PWD: 'temporal', POSTGRES_SEEDS: 'temporal-db' } },
+  temporal_worker: { image: 'my-workflow-worker:latest', port: null, replicas: 3, env: { TEMPORAL_ADDRESS: 'temporal-server:7233', TEMPORAL_NAMESPACE: 'default', TASK_QUEUE: 'my-task-queue' } },
+  temporal_client: { image: 'my-workflow-client:latest', port: 8080, replicas: 2, env: { TEMPORAL_ADDRESS: 'temporal-server:7233', TEMPORAL_NAMESPACE: 'default' } },
+  temporal_ui:     { image: 'temporalio/ui:2.30.0', port: 8080, replicas: 1, env: { TEMPORAL_ADDRESS: 'temporal-server:7233', TEMPORAL_CORS_ORIGINS: 'http://localhost:3000' } },
+  temporal_db:     { image: 'postgres:16-alpine', port: 5432, replicas: 1, env: { POSTGRES_DB: 'temporal', POSTGRES_USER: 'temporal', POSTGRES_PASSWORD: 'temporal' } },
 };
 
 // -------------------------- STATE --------------------------
@@ -664,7 +681,7 @@ function renderInspector() {
     <label class="block text-[11px] themed-muted">Namespace</label>
     <input class="w-full text-xs themed-input rounded px-2 py-1 mb-2" value="${escapeHtml(n.props.namespace || 'default')}" oninput="updateProp('namespace', this.value)" />
 
-    ${['Deployment','StatefulSet','DaemonSet','Pod','WebFrontend','APIServer','AppServer','Database','DocStore','Cache','MessageQueue','Custom'].includes(n.type) ? `
+    ${['Deployment','StatefulSet','DaemonSet','Pod','WebFrontend','APIServer','AppServer','Database','DocStore','Cache','MessageQueue','Custom','TemporalServer','TemporalWorker','TemporalClient','TemporalUI','TemporalDB'].includes(n.type) ? `
       <label class="block text-[11px] themed-muted">Image</label>
       <input class="w-full text-xs themed-input rounded px-2 py-1 mb-2" value="${escapeHtml(n.props.image || '')}" oninput="updateProp('image', this.value)" />
 
@@ -844,9 +861,9 @@ function genWorkloadYaml(n, kind) {
   if (k === 'Custom') {
     realKind = p.customKind || 'Deployment';
   } else {
-    realKind = ['WebFrontend','APIServer','AppServer','DocStore','Cache','MessageQueue'].includes(k)
+    realKind = ['WebFrontend','APIServer','AppServer','DocStore','Cache','MessageQueue','TemporalServer','TemporalWorker','TemporalClient','TemporalUI'].includes(k)
       ? 'Deployment'
-      : k === 'Database' ? 'StatefulSet' : k;
+      : (k === 'Database' || k === 'TemporalDB') ? 'StatefulSet' : k;
   }
   const annot = p.description ? `  annotations:\n    description: ${yamlEscape(p.description)}\n` : '';
   return `---
@@ -1570,6 +1587,46 @@ const K8S_INFO = {
     relates: ['The generated YAML uses the kind you picked', 'Descriptions become metadata.annotations.description', 'Connects to other nodes like any built-in component'],
     failover: 'Depends entirely on the kind you chose. A custom Deployment gets normal Deployment failover. A custom CRD relies on the operator that owns it — check that operator\'s HA docs. When in doubt, run multiple replicas, use PodDisruptionBudgets, and spread across nodes with topologySpreadConstraints.',
   },
+  TemporalServer: {
+    title: 'Temporal Server',
+    what: 'The Temporal.io orchestration engine. Internally it is four services (Frontend, History, Matching, internal Worker), but the <code>auto-setup</code> image bundles them into one pod for dev. Production splits them into separate Deployments.',
+    role: 'The brain of a Temporal deployment. Accepts gRPC calls from clients (StartWorkflow, SignalWorkflow, QueryWorkflow), dispatches activities to task queues, persists workflow state to the database, and drives timers. Pods are stateless — all state lives in the Temporal DB.',
+    relates: ['Exposes gRPC on port 7233 for Clients and Workers', 'Persists to <code>TemporalDB</code> (Postgres, MySQL, or Cassandra)', 'Scraped by Prometheus for metrics on 9090', 'Fronted by the <code>TemporalUI</code> for human inspection', 'Installed via the official <code>temporalio/temporal</code> Helm chart'],
+    failover: 'Stateless — run 3+ replicas across nodes. The persistence layer (Cassandra/Postgres) is where real HA lives. Split services (Frontend/History/Matching) and scale them independently under load. History service is typically the bottleneck. Enable multi-cluster replication for cross-region DR. Use namespaces for blast-radius isolation.',
+    docs: 'docs.temporal.io/clusters',
+  },
+  TemporalWorker: {
+    title: 'Temporal Worker',
+    what: 'Your code, running in a pod, that hosts <strong>workflow</strong> and <strong>activity</strong> implementations. Workers long-poll the Temporal server on specific <strong>task queues</strong> for work to execute.',
+    role: 'Where the business logic actually runs. Workflows are durable functions — state is checkpointed to the database at every await point. Activities are regular functions that do external work (HTTP calls, DB writes, sending emails). If a worker dies mid-workflow, another worker picks up exactly where it left off.',
+    relates: ['Connects to <code>TemporalServer</code> via gRPC (outbound only — no inbound port needed)', 'Listens on specific <code>TASK_QUEUE</code> names configured via env', 'Built with SDK: Go, Java, Python, TypeScript, .NET, PHP, Ruby', 'Typically paired with a <code>TemporalClient</code> that starts the workflows'],
+    failover: 'Completely stateless — run 3+ replicas per task queue across nodes. Worker death = zero data loss because workflow state is in the database. New workers automatically resume in-progress workflows. Scale horizontally based on task queue backlog using KEDA with the Temporal scaler. Use <code>sticky execution</code> for performance, but rotate sticky caches gracefully on drain.',
+    docs: 'docs.temporal.io/workers',
+  },
+  TemporalClient: {
+    title: 'Temporal Client',
+    what: 'Any application that uses the Temporal SDK to <strong>start</strong>, <strong>signal</strong>, or <strong>query</strong> workflows. Usually an API server, web backend, or CLI that needs to trigger durable work.',
+    role: 'The entry point for workflows. A user hits your REST API → the API server (acting as a Temporal Client) calls <code>StartWorkflow()</code> → the workflow runs forever in a Worker. Clients don\'t execute workflow code themselves — they just kick it off and optionally wait for results.',
+    relates: ['Connects to <code>TemporalServer</code> via gRPC (same 7233)', 'Uses the same SDK as <code>TemporalWorker</code> but with different code paths', 'Typically exposed via Service + Ingress so end-users can trigger workflows', 'Reads workflow results via <code>GetWorkflowHandle().result()</code>'],
+    failover: 'Stateless HTTP/API layer — standard Deployment failover applies. Use retries with exponential backoff on client calls to the Temporal server. If the Temporal server is briefly unavailable, clients should queue requests locally or return 503 — they must NOT store workflow state themselves (that\'s the server\'s job).',
+    docs: 'docs.temporal.io/develop',
+  },
+  TemporalUI: {
+    title: 'Temporal UI',
+    what: 'The official web interface for browsing namespaces, inspecting workflow executions, viewing event histories, and replaying failed runs. Ships as <code>temporalio/ui</code>.',
+    role: 'Developer productivity + production debugging. When a workflow fails, the UI shows you the exact event that broke it, the input/output of every activity, and the full stack trace. Can signal and terminate workflows for manual recovery.',
+    relates: ['Talks to <code>TemporalServer</code> over gRPC', 'Exposed via Service + Ingress for team access', 'Authentication via OIDC (Google, Okta, etc.) — configure via env vars', 'Read-only vs admin roles enforced via the server\'s auth plugin'],
+    failover: 'Stateless Deployment — run 2+ replicas. If the UI is down but the server/workers are up, workflows keep executing — you just lose visibility until it comes back. Put it behind an Ingress with TLS and SSO; Temporal UI has no built-in auth by default.',
+    docs: 'docs.temporal.io/web-ui',
+  },
+  TemporalDB: {
+    title: 'Temporal Database',
+    what: 'The persistence layer for Temporal. Stores workflow state, event histories, timers, and visibility indexes. Officially supported: <strong>Cassandra</strong>, <strong>PostgreSQL</strong>, and <strong>MySQL</strong>. For search: Elasticsearch.',
+    role: 'The durability backbone. Every workflow event is written here before the server acks. This is why workflows survive pod crashes, node failures, and upgrades — the database has the truth. If you lose the database, you lose everything in flight.',
+    relates: ['StatefulSet with PVC for data', 'Accessed by <code>TemporalServer</code> (Frontend reads, History writes)', 'For HA: use Cassandra clusters, Postgres with Patroni/CloudNativePG, or managed RDS', 'Elasticsearch sidecar for advanced workflow search — optional but common'],
+    failover: 'The critical failover story for Temporal. A bare Postgres StatefulSet is NOT production-ready — use CloudNativePG or Zalando. Cassandra natively replicates across nodes and is the canonical choice for large Temporal deployments. Run at least 3 Cassandra nodes across zones. Enable PITR backups. For cross-region DR use Temporal\'s built-in multi-cluster replication, not database-level replication.',
+    docs: 'docs.temporal.io/cluster-deployment-guide',
+  },
 };
 
 function openExplainModal(type) {
@@ -1977,6 +2034,78 @@ const WIZARD_SCENARIOS = [
     ],
   },
   {
+    id: 'temporal',
+    name: 'Temporal.io Workflow Platform',
+    desc: 'Temporal server + Postgres + UI + workers + a client app — full durable workflow stack.',
+    difficulty: '⭐⭐⭐ Advanced',
+    steps: [
+      { title: 'Step 1 — Temporal database',
+        body: '<strong>Temporal</strong> needs persistence — Postgres, MySQL, or Cassandra. All workflow state is written here, so it IS the source of truth. For dev we use Postgres as a StatefulSet with a PVC.',
+        action: { type: 'add', key: 'db', nodeType: 'TemporalDB', x: 200, y: 380, label: 'temporal-db', preset: 'temporal_db', props: { description: 'Postgres — workflow state persistence' } } },
+      { title: 'Step 2 — Database storage',
+        body: 'A PVC so the database survives pod restarts. In production use CloudNativePG or managed RDS — losing this database = losing every in-flight workflow.',
+        action: { type: 'multi', actions: [
+          { type: 'add', key: 'pvc', nodeType: 'PersistentVolumeClaim', x: 200, y: 560, label: 'temporal-db-pvc', props: { size: '20Gi', description: 'Temporal state storage' } },
+          { type: 'connect', from: 'db', to: 'pvc' },
+        ]} },
+      { title: 'Step 3 — Database service',
+        body: 'Headless Service so the Temporal server can connect at <code>temporal-db:5432</code> via DNS.',
+        action: { type: 'multi', actions: [
+          { type: 'add', key: 'dbSvc', nodeType: 'Service', x: 460, y: 380, label: 'temporal-db-svc', props: { serviceType: 'ClusterIP', port: 5432, description: 'Postgres DNS entry' } },
+          { type: 'connect', from: 'dbSvc', to: 'db' },
+        ]} },
+      { title: 'Step 4 — Temporal Server',
+        body: '<strong>Temporal Server</strong> is the orchestration engine. It exposes gRPC on port 7233 for clients and workers. In dev we use the <code>auto-setup</code> image which initializes the database schema automatically.',
+        action: { type: 'multi', actions: [
+          { type: 'add', key: 'server', nodeType: 'TemporalServer', x: 460, y: 200, label: 'temporal-server', preset: 'temporal_server', props: { description: 'Orchestration engine (Frontend+History+Matching)' } },
+          { type: 'connect', from: 'server', to: 'dbSvc' },
+        ]} },
+      { title: 'Step 5 — Server Service',
+        body: 'Other pods reach the Temporal server at <code>temporal-server:7233</code>. Workers and clients both connect here.',
+        action: { type: 'multi', actions: [
+          { type: 'add', key: 'serverSvc', nodeType: 'Service', x: 720, y: 200, label: 'temporal-server-svc', props: { serviceType: 'ClusterIP', port: 7233, description: 'gRPC endpoint for clients + workers' } },
+          { type: 'connect', from: 'serverSvc', to: 'server' },
+        ]} },
+      { title: 'Step 6 — Temporal UI',
+        body: '<strong>Temporal UI</strong> is the web console for browsing workflows, viewing event histories, and debugging failures. Essential for both dev and prod operations.',
+        action: { type: 'multi', actions: [
+          { type: 'add', key: 'ui', nodeType: 'TemporalUI', x: 200, y: 200, label: 'temporal-ui', preset: 'temporal_ui', props: { description: 'Web console for workflow inspection' } },
+          { type: 'connect', from: 'ui', to: 'serverSvc' },
+        ]} },
+      { title: 'Step 7 — Expose the UI externally',
+        body: 'Service + Ingress so your team can reach the console at <code>temporal.local</code>. In production, put SSO in front of this — Temporal UI has no built-in auth.',
+        action: { type: 'multi', actions: [
+          { type: 'add', key: 'uiSvc', nodeType: 'Service', x: 200, y: 60, label: 'temporal-ui-svc', props: { serviceType: 'ClusterIP', port: 8080 } },
+          { type: 'add', key: 'uiIng', nodeType: 'Ingress', x: 460, y: 60, label: 'temporal-ui-ingress', props: { host: 'temporal.local', path: '/', description: 'HTTPS entry for Temporal UI' } },
+          { type: 'connect', from: 'uiIng', to: 'uiSvc' },
+          { type: 'connect', from: 'uiSvc', to: 'ui' },
+        ]} },
+      { title: 'Step 8 — Temporal Workers',
+        body: '<strong>Workers</strong> are your code — they host workflow and activity implementations. They long-poll the server for work on specific task queues. Stateless, scale horizontally. If a worker dies mid-workflow, another picks up from the last checkpoint.',
+        action: { type: 'multi', actions: [
+          { type: 'add', key: 'worker', nodeType: 'TemporalWorker', x: 980, y: 380, label: 'workflow-worker', preset: 'temporal_worker', props: { description: 'Hosts workflow + activity code. No inbound port — polls server.' } },
+          { type: 'connect', from: 'worker', to: 'serverSvc' },
+        ]} },
+      { title: 'Step 9 — Client application',
+        body: '<strong>The Client</strong> is your API/app that starts workflows. User hits POST /orders → client calls <code>StartWorkflow("ProcessOrder", ...)</code> → worker executes it. The client does not run workflow code itself, only triggers it.',
+        action: { type: 'multi', actions: [
+          { type: 'add', key: 'client', nodeType: 'TemporalClient', x: 980, y: 200, label: 'api-client', preset: 'temporal_client', props: { description: 'API server that starts workflows' } },
+          { type: 'connect', from: 'client', to: 'serverSvc' },
+        ]} },
+      { title: 'Step 10 — Expose the client API',
+        body: 'Your end users hit the client via Service + Ingress. Client in turn talks to Temporal server internally.',
+        action: { type: 'multi', actions: [
+          { type: 'add', key: 'clientSvc', nodeType: 'Service', x: 1240, y: 200, label: 'api-svc', props: { serviceType: 'ClusterIP', port: 8080, description: 'API endpoint — triggers workflows' } },
+          { type: 'add', key: 'clientIng', nodeType: 'Ingress', x: 1240, y: 60, label: 'api-ingress', props: { host: 'api.local', path: '/orders', description: 'Public API that starts workflows' } },
+          { type: 'connect', from: 'clientIng', to: 'clientSvc' },
+          { type: 'connect', from: 'clientSvc', to: 'client' },
+        ]} },
+      { title: '🎉 Temporal platform ready',
+        body: 'You now have a full durable workflow stack. Flow: <strong>user → Ingress → Client → Temporal Server → enqueue on task queue → Worker executes → state persisted to Postgres</strong>. Workers and clients can crash at any moment — the workflow resumes automatically. Click any Temporal node and hit <strong>ℹ Explain</strong> for production HA details.',
+        action: { type: 'done' } },
+    ],
+  },
+  {
     id: 'cicd',
     name: 'CI/CD Pipeline (Jenkins)',
     desc: 'Jenkins controller + dynamic agent pods + shared workspace + secrets.',
@@ -2224,7 +2353,7 @@ maintainers:
   // values.yaml — build per-workload values
   const valuesLines = ['# Default values generated from K8s Studio canvas', 'global:', '  namespace: ' + (document.getElementById('namespace').value || 'default'), ''];
   const workloadNodes = Object.values(state.nodes).filter(n =>
-    ['Deployment','StatefulSet','DaemonSet','Pod','WebFrontend','APIServer','AppServer','Database','DocStore','Cache','MessageQueue','Custom'].includes(n.type)
+    ['Deployment','StatefulSet','DaemonSet','Pod','WebFrontend','APIServer','AppServer','Database','DocStore','Cache','MessageQueue','Custom','TemporalServer','TemporalWorker','TemporalClient','TemporalUI','TemporalDB'].includes(n.type)
   );
   workloadNodes.forEach(n => {
     const key = sanitizeKey(n.props.name);
@@ -2267,8 +2396,8 @@ helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
     const key = sanitizeKey(n.props.name);
     const p = n.props;
     const realKind = p.customKind ||
-      (['WebFrontend','APIServer','AppServer','DocStore','Cache','MessageQueue'].includes(n.type) ? 'Deployment' :
-       n.type === 'Database' ? 'StatefulSet' :
+      (['WebFrontend','APIServer','AppServer','DocStore','Cache','MessageQueue','TemporalServer','TemporalWorker','TemporalClient','TemporalUI'].includes(n.type) ? 'Deployment' :
+       (n.type === 'Database' || n.type === 'TemporalDB') ? 'StatefulSet' :
        n.type === 'Custom' ? 'Deployment' : n.type);
     root.file(`templates/${key}-workload.yaml`, `{{- if .Values.${key}.enabled }}
 ---
@@ -2856,7 +2985,7 @@ const PROJECT_JSON_SCHEMA = {
                   "Pod", "Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob",
                   "Service", "Ingress", "Egress", "NetworkPolicy",
                   "ConfigMap", "Secret", "PersistentVolumeClaim",
-                  "WebFrontend", "APIServer", "AppServer", "Database", "DocStore", "Cache", "MessageQueue",
+                  "WebFrontend", "APIServer", "AppServer", "Database", "DocStore", "Cache", "MessageQueue", "TemporalServer", "TemporalWorker", "TemporalClient", "TemporalUI", "TemporalDB",
                   "Custom"
                 ]
               },
@@ -3212,7 +3341,7 @@ function runValidation() {
   });
 
   // 4. Workloads without a Service exposing them
-  const workloadTypes = ['Deployment','StatefulSet','WebFrontend','APIServer','AppServer','Database','DocStore','Cache','MessageQueue'];
+  const workloadTypes = ['Deployment','StatefulSet','WebFrontend','APIServer','AppServer','Database','DocStore','Cache','MessageQueue','TemporalServer','TemporalWorker','TemporalClient','TemporalUI','TemporalDB'];
   nodes.filter(n => workloadTypes.includes(n.type)).forEach(w => {
     const svcs = state.connections
       .filter(c => c.from === w.id || c.to === w.id)
@@ -3224,7 +3353,7 @@ function runValidation() {
   });
 
   // 5. Single-replica workloads
-  nodes.filter(n => ['Deployment','WebFrontend','APIServer','AppServer'].includes(n.type)).forEach(w => {
+  nodes.filter(n => ['Deployment','WebFrontend','APIServer','AppServer','TemporalServer','TemporalWorker','TemporalClient','TemporalUI'].includes(n.type)).forEach(w => {
     if ((w.props.replicas || 1) < 2) {
       issues.warning.push({ msg: `<code>${w.props.name}</code> runs with only ${w.props.replicas || 1} replica — no HA`, nodes: [w] });
     }
@@ -3508,8 +3637,8 @@ ${resources.join('\n')}
 
 function kindForNode(n) {
   if (n.type === 'Custom') return n.props.customKind || 'Deployment';
-  if (['WebFrontend','APIServer','AppServer','DocStore','Cache','MessageQueue'].includes(n.type)) return 'Deployment';
-  if (n.type === 'Database') return 'StatefulSet';
+  if (['WebFrontend','APIServer','AppServer','DocStore','Cache','MessageQueue','TemporalServer','TemporalWorker','TemporalClient','TemporalUI'].includes(n.type)) return 'Deployment';
+  if (n.type === 'Database' || n.type === 'TemporalDB') return 'StatefulSet';
   return n.type;
 }
 
@@ -3536,7 +3665,7 @@ function generateKubectlCommands() {
   lines.push(`kubectl apply -k .`);
   lines.push('');
   lines.push('# --- Wait for rollouts ---');
-  nodes.filter(n => ['Deployment','WebFrontend','APIServer','AppServer','DocStore','Cache','MessageQueue'].includes(n.type)).forEach(n => {
+  nodes.filter(n => ['Deployment','WebFrontend','APIServer','AppServer','DocStore','Cache','MessageQueue','TemporalServer','TemporalWorker','TemporalClient','TemporalUI'].includes(n.type)).forEach(n => {
     lines.push(`kubectl rollout status deployment/${n.props.name} -n ${ns} --timeout=300s`);
   });
   nodes.filter(n => n.type === 'StatefulSet' || n.type === 'Database').forEach(n => {
@@ -3549,7 +3678,7 @@ function generateKubectlCommands() {
   lines.push(`kubectl top pods -n ${ns}  # requires metrics-server`);
   lines.push('');
   lines.push('# --- Logs & debugging ---');
-  nodes.filter(n => ['Deployment','StatefulSet','WebFrontend','APIServer','AppServer','Database','DocStore','Cache','MessageQueue','Pod'].includes(n.type)).forEach(n => {
+  nodes.filter(n => ['Deployment','StatefulSet','WebFrontend','APIServer','AppServer','Database','DocStore','Cache','MessageQueue','Pod','TemporalServer','TemporalWorker','TemporalClient','TemporalUI','TemporalDB'].includes(n.type)).forEach(n => {
     lines.push(`kubectl logs -f -n ${ns} -l app=${n.props.name} --tail=100`);
   });
   lines.push('');
@@ -3559,7 +3688,7 @@ function generateKubectlCommands() {
   });
   lines.push('');
   lines.push('# --- Scale workloads ---');
-  nodes.filter(n => ['Deployment','WebFrontend','APIServer','AppServer'].includes(n.type)).forEach(n => {
+  nodes.filter(n => ['Deployment','WebFrontend','APIServer','AppServer','TemporalServer','TemporalWorker','TemporalClient','TemporalUI'].includes(n.type)).forEach(n => {
     lines.push(`kubectl scale deployment/${n.props.name} -n ${ns} --replicas=${(n.props.replicas || 1) + 1}`);
   });
   lines.push('');
