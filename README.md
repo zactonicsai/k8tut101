@@ -1,3 +1,12 @@
+# Run locally this html and draw
+
+```
+python3 -m http.server 8000
+```
+
+- served on browser http://localhost:8000
+
+
 # Setting Up a Kubernetes Cluster with Docker Compose on macOS
 
 Quick note before we dive in: "Kubernetes on Docker Compose" isn't really a standard combo — Docker Compose orchestrates containers directly, while Kubernetes is its own orchestrator. What people usually mean by this is one of two things: running a local K8s cluster using Docker as the container runtime (via **kind** or **k3d**, which use Docker Compose-style container setups under the hood), or using Docker Desktop's built-in Kubernetes. I'll go with **kind** (Kubernetes in Docker) since it's the most common "K8s on Docker" path on Mac and gives you a real multi-node cluster. If you actually wanted plain Docker Compose (no K8s), let me know and I'll rewrite.
