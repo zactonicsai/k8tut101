@@ -1,4 +1,50 @@
-# Security Review 
+# Security Review — Post-Patch
+
+**Context: internal use, dev and training only, not exposed to the public internet, no real secrets, trusted users.**
+
+Short answer: **nothing left is a real problem in your context.** The remaining items are theoretical hardening gaps that matter for a public SaaS but don't matter for an internal training tool.
+
+## What's still technically present
+
+**1. Body content in modals still uses `innerHTML` with template strings.**
+The `showModal()` title is now safe, but the `bodyHtml` parameter is still dropped in as HTML. Most callers escape user data with `escapeHtml()`, but a future edit could miss one.
+
+- *Public app risk:* medium — one slip = XSS.
+- *Your context:* **negligible.** The "attacker" would have to be one of your own developers typing a malicious YAML file or project name into their own browser to attack themselves. That's self-XSS, which isn't really an attack.
+
+**2. Inline `onclick=` handlers throughout the markup.**
+Hundreds of them. They make a strict Content-Security-Policy impossible to add later.
+
+- *Public app risk:* medium — CSP is your defense-in-depth against XSS.
+- *Your context:* **doesn't matter.** CSP is for sites that load untrusted content or face untrusted users. Neither applies.
+
+**3. Imported YAML and project files are trusted after schema validation.**
+The schema validator checks shape but not content. A malicious YAML could put HTML-looking strings into descriptions that later get rendered.
+
+- *Public app risk:* low-medium — depends on where files come from.
+- *Your context:* **none.** Your team writes the YAML. If a teammate writes `<script>` into a description as a joke, the worst that happens is they prank themselves.
+
+**4. `localStorage` for projects has no integrity check.**
+Another page on the same origin could write garbage into it.
+
+- *Public app risk:* low.
+- *Your context:* **none.** It's a local file or an internal host. There is no "another page on the same origin."
+
+## What I'd actually worry about — and it's not security
+
+For an internal dev/training tool, the real risks aren't security, they're **operational confusion**:
+
+- The "Deploy" modal shows real `kubectl` commands. Make sure trainees understand it doesn't actually run them. (You already have a note saying so — good.)
+- The example secrets contain values like `changeme` and `admin`. Make absolutely sure nobody copy-pastes a generated YAML straight into a real cluster. The validator already flags weak passwords, which is exactly the right call.
+- The tool generates manifests that *look* production-ready but skip things like resource limits, probes, and PodDisruptionBudgets. For training, consider adding a banner or watermark on exported YAML noting "review before applying to any real cluster."
+
+## Bottom line
+
+**For internal dev/training use, this app is fine.** You closed every issue that could realistically hurt you. The remaining items are best practices for public-facing apps, and applying them to an internal tool would be effort spent on the wrong problem.
+
+If the deployment context ever changes — for example, you put it on an internet-facing URL, share it with users outside your team, or start letting it ingest YAML from untrusted sources — revisit this list. Until then, you're done. Ship it.
+
+# Initial Security Review 
 
 Good news: you fixed the biggest one. The CDN scripts are gone — Tailwind, js-yaml, and JSZip now load from local paths (`/tailwinds.css`, `js-yaml.min.js`, `jszip.min.js`). That removes the supply-chain risk and makes the app actually work offline. Nice.
 

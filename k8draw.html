@@ -949,7 +949,7 @@ function openPodDetails(parentNode, index, podName, isStateful) {
       </div>
     </div>
 
-    ${info && info.docs ? `<p class="text-[11px] themed-dim mt-3">📚 <a href="https://${info.docs}" target="_blank" class="text-blue-500 hover:underline">${info.docs}</a></p>` : ''}
+    ${info && info.docs ? `<p class="text-[11px] themed-dim mt-3">📚 <a href="https://${info.docs}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${info.docs}</a></p>` : ''}
 
     <div class="flex gap-2 mt-4">
       <button onclick="openExplainModal('${parentNode.type}')" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500">ℹ Full Explain</button>
@@ -1785,17 +1785,37 @@ function generateYaml(includeKindConfig = true) {
 // -------------------------- MODALS --------------------------
 function showModal(title, bodyHtml, wide=false) {
   const root = document.getElementById('modalRoot');
-  root.innerHTML = `
-    <div class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4" onclick="if(event.target===this)closeModal()">
-      <div class="modal-body-themed rounded-xl shadow-2xl ${wide?'max-w-5xl':'max-w-2xl'} w-full max-h-[90vh] flex flex-col border themed-border">
-        <div class="flex items-center justify-between px-5 py-3 border-b themed-border">
-          <h3 class="text-lg font-semibold themed-text">${title}</h3>
-          <button onclick="closeModal()" class="themed-dim hover:text-red-500 text-2xl leading-none">×</button>
-        </div>
-        <div class="p-5 overflow-y-auto scrollbar themed-text">${bodyHtml}</div>
-      </div>
-    </div>
-  `;
+  root.innerHTML = '';
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4';
+  backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
+
+  const box = document.createElement('div');
+  box.className = `modal-body-themed rounded-xl shadow-2xl ${wide?'max-w-5xl':'max-w-2xl'} w-full max-h-[90vh] flex flex-col border themed-border`;
+
+  const header = document.createElement('div');
+  header.className = 'flex items-center justify-between px-5 py-3 border-b themed-border';
+
+  const h3 = document.createElement('h3');
+  h3.className = 'text-lg font-semibold themed-text';
+  h3.textContent = title;   // safe — never parsed as HTML
+  header.appendChild(h3);
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'themed-dim hover:text-red-500 text-2xl leading-none';
+  closeBtn.textContent = '×';
+  closeBtn.addEventListener('click', closeModal);
+  header.appendChild(closeBtn);
+
+  const body = document.createElement('div');
+  body.className = 'p-5 overflow-y-auto scrollbar themed-text';
+  body.innerHTML = bodyHtml;
+
+  box.appendChild(header);
+  box.appendChild(body);
+  backdrop.appendChild(box);
+  root.appendChild(backdrop);
 }
 function closeModal() { document.getElementById('modalRoot').innerHTML = ''; }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
@@ -2330,7 +2350,7 @@ function openExplainModal(type) {
     showModal(type, `<p class="text-sm themed-muted">No detailed explanation available for ${type} yet.</p>`);
     return;
   }
-  const docsLink = info.docs ? `<p class="text-[11px] themed-dim mt-3">📚 <a href="https://${info.docs}" target="_blank" class="text-blue-500 hover:underline">${info.docs}</a></p>` : '';
+  const docsLink = info.docs ? `<p class="text-[11px] themed-dim mt-3">📚 <a href="https://${info.docs}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${info.docs}</a></p>` : '';
   showModal(`ℹ ${info.title}`, `
     <div class="info-section">
       <h4>🔍 What it is</h4>
@@ -3860,8 +3880,8 @@ function openProjectsModal() {
         <div class="text-sm font-semibold themed-text truncate">${escapeHtml(p.name)}</div>
         <div class="text-[10px] themed-dim">${p.data.state?.nodes?.length || 0} nodes · ${new Date(p.data.createdAt).toLocaleString()}</div>
       </div>
-      <button onclick="loadStoredProject('${escapeHtml(p.name).replace(/'/g,'&apos;')}')" class="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-500">Load</button>
-      <button onclick="deleteStoredProject('${escapeHtml(p.name).replace(/'/g,'&apos;')}')" class="text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200">Delete</button>
+      <button data-action="load-project" data-name="${escapeHtml(p.name)}" class="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-500">Load</button>
+      <button data-action="delete-project" data-name="${escapeHtml(p.name)}" class="text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200">Delete</button>
     </div>
   `).join('') : '<p class="text-xs themed-dim italic">No saved projects yet.</p>';
 
@@ -3911,6 +3931,14 @@ function openProjectsModal() {
 
     <p class="text-[10px] themed-dim mt-3">⌨ Ctrl/Cmd+S opens this dialog. Files are validated against the schema on import.</p>
   `);
+
+  // Wire project buttons safely — names go through dataset, not interpolated into JS
+  document.querySelectorAll('#modalRoot [data-action="load-project"]').forEach(b => {
+    b.addEventListener('click', () => loadStoredProject(b.dataset.name));
+  });
+  document.querySelectorAll('#modalRoot [data-action="delete-project"]').forEach(b => {
+    b.addEventListener('click', () => deleteStoredProject(b.dataset.name));
+  });
 }
 
 function saveToFile() {
@@ -4480,6 +4508,64 @@ function downloadYamlTab() {
 renderPalette();
 updateEmptyState();
 
+// Show training-only warning on first visit (dismissable, remembered in localStorage)
+function showTrainingWarning() {
+  try {
+    if (localStorage.getItem('k8s-studio-warning-ack') === '1') return;
+  } catch {}
+  showModal('⚠ Training & Local Dev Only', `
+    <div class="space-y-3 text-sm themed-text">
+      <div class="p-3 rounded border-l-4" style="border-color:#dc2626;background:rgba(239,68,68,0.08)">
+        <p class="font-semibold mb-1" style="color:#dc2626">Do not use this tool to deploy to production.</p>
+        <p class="text-xs themed-muted">K8s Studio is a visual learning aid. The YAML it generates is intentionally simplified for clarity, not hardened for real workloads.</p>
+      </div>
+
+      <div>
+        <p class="font-semibold mb-1">✅ What it's for</p>
+        <ul class="text-xs themed-muted list-disc pl-5 space-y-0.5">
+          <li>Learning Kubernetes concepts visually</li>
+          <li>Sketching architectures before writing real manifests</li>
+          <li>Local dev testing on <code>kind</code> or Docker Compose</li>
+          <li>Training, workshops, and demos</li>
+        </ul>
+      </div>
+
+      <div>
+        <p class="font-semibold mb-1">❌ What it's NOT for</p>
+        <ul class="text-xs themed-muted list-disc pl-5 space-y-0.5">
+          <li>Production clusters of any kind</li>
+          <li>Anything handling real user data, PII, or secrets</li>
+          <li>Clusters reachable from the public internet</li>
+          <li>Compliance-regulated environments</li>
+        </ul>
+      </div>
+
+      <div class="p-3 rounded text-xs themed-muted" style="background:rgba(59,130,246,0.06)">
+        Generated manifests skip resource limits, probes, PodDisruptionBudgets, network policies, RBAC hardening, and many other things real workloads need. Always review and harden before applying anywhere that matters.
+      </div>
+
+      <div class="flex items-center gap-2 pt-2">
+        <input type="checkbox" id="warningDontShow" class="cursor-pointer" />
+        <label for="warningDontShow" class="text-xs themed-muted cursor-pointer">Don't show this again on this browser</label>
+      </div>
+
+      <button id="warningAckBtn" class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-semibold text-sm">I understand — continue</button>
+    </div>
+  `);
+
+  // Wire the acknowledge button
+  const ackBtn = document.getElementById('warningAckBtn');
+  if (ackBtn) {
+    ackBtn.addEventListener('click', () => {
+      const dontShow = document.getElementById('warningDontShow');
+      if (dontShow && dontShow.checked) {
+        try { localStorage.setItem('k8s-studio-warning-ack', '1'); } catch {}
+      }
+      closeModal();
+    });
+  }
+}
+
 // Auto-load a starter on first visit so the dashboard isn't empty
 setTimeout(() => {
   if (Object.keys(state.nodes).length === 0) {
@@ -4490,6 +4576,8 @@ setTimeout(() => {
   history.stack = [snapshotState()];
   history.index = 0;
   updateHistoryButtons();
+  // Show the training warning after the canvas is populated
+  showTrainingWarning();
 }, 300);
 </script>
 
